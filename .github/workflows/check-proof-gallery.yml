@@ -16,8 +16,10 @@ jobs:
         with:
           ref: fix-proof-gallery-video
 
-      - name: Inspect source video
+      - name: Install FFmpeg and inspect source video
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
           ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,pix_fmt,width,height,r_frame_rate -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
           ffprobe -v error -show_entries format=format_name,duration,size -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
 
