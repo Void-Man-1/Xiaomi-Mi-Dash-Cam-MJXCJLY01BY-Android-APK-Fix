@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://void-man-1.github.io/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/sitemap.xml
+Sitemap: https://void-man-1.github.io/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/sitemap.xml
