@@ -1,0 +1,35 @@
+name: Run proof gallery patch
+
+on:
+  push:
+    branches:
+      - fix-proof-gallery-video
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-proof-gallery-video
+      - name: Apply patch
+        run: python tools/patch_proof_gallery.py
+      - name: Verify media assets
+        run: |
+          curl -L --fail --silent --show-error -r 0-4095 -o /tmp/video-head 'https://raw.githubusercontent.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/main/assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4'
+          curl -L --fail --silent --show-error -o /tmp/poster.jpg 'https://raw.githubusercontent.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/main/assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg'
+          test -s /tmp/video-head
+          test -s /tmp/poster.jpg
+      - name: Commit site changes and remove temporary patch files
+        run: |
+          rm -f .github/workflows/fix-proof-gallery-once.yml
+          rm -f .github/workflows/run-proof-patch.yml
+          rm -f tools/patch_proof_gallery.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'site: rebuild proof gallery and embed acceptance video'
+          git push origin HEAD:fix-proof-gallery-video
