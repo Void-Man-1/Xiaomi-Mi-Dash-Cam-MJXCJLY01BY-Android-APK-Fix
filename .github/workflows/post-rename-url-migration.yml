@@ -86,6 +86,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f .github/workflows/post-rename-url-migration.yml
           python tools/verify_public_naming.py --post-rename
           old='Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY'
           release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0.0")"
@@ -106,6 +107,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          git restore .github/workflows/post-rename-url-migration.yml
           if git diff --quiet; then
             echo "No repository URL changes required."
             exit 0
