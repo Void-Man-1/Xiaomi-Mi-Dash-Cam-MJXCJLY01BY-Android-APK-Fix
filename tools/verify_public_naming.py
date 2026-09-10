@@ -18,6 +18,10 @@ SKIP_PREFIXES = (
     "docs/superpowers/specs/",
     "docs/superpowers/plans/",
 )
+SKIP_FILES = {
+    "tools/verify_public_naming.py",
+    "tools/apply_uniform_naming_migration.py",
+}
 BANNED_PUBLIC_PATTERNS = (
     "Mi-Dash-Cam-EU-",
     "Mi Dash Cam EU 2.0.0",
@@ -43,7 +47,7 @@ def iter_public_text_files():
         if not path.is_file() or path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         rel = path.relative_to(ROOT).as_posix()
-        if rel == "tools/verify_public_naming.py" or rel.startswith(SKIP_PREFIXES):
+        if rel in SKIP_FILES or rel.startswith(SKIP_PREFIXES):
             continue
         yield rel, path
 
