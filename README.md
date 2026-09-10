@@ -1,22 +1,14 @@
 <!-- latest-apk-download:start -->
-<h1 align="center">⬇️ DOWNLOAD THE APP ⬇️</h1>
-
 <p align="center">
-  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest/download/Mi-Dash-Cam-EU-latest.apk">
-    <img src="https://img.shields.io/badge/DOWNLOAD-LATEST%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download latest Mi Dash Cam APK">
+  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk">
+    <img src="https://img.shields.io/badge/Download-Latest%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download latest Mi Dash Cam APK">
   </a>
 </p>
 
 <p align="center">
-  <strong>ONE CLICK — ALWAYS THE LATEST RELEASE APK</strong><br>
-  Android: tap to download and install. PC: click to download the APK for transfer to your phone or Android emulator.
+  <strong>Latest release:</strong> <code>Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk</code><br>
+  Download directly on Android, or on a PC to transfer to your phone.
 </p>
-
-<p align="center">
-  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest">Release notes / checksums / older details</a>
-</p>
-
-<hr>
 <!-- latest-apk-download:end -->
 
 <p align="center">
