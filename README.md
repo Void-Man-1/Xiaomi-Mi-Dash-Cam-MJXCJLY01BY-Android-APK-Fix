@@ -18,7 +18,13 @@
 <h1 align="center">Mi Dash cam Android 8.1-16 fix<br><code>MJXCJLY01BY</code></h1>
 
 <p align="center">
-  Restores the European Mi Dash Cam app on modern Android, including Poco F6 with Android 16 / HyperOS 3.
+  Compatibility-fixed Xiaomi Mi Dash Cam <code>MJXCJLY01BY</code> EU APK for Android 8.1–16 and HyperOS.<br>
+  Restores installation, camera Wi-Fi connection, live preview, recordings, downloads, playback, and accountless local use on modern phones.
+</p>
+
+<!-- discovery-language-links -->
+<p align="center">
+  <a href="docs/README.ru.md">Русский</a> · <a href="docs/README.pl.md">Polski</a>
 </p>
 
 <p align="center">
@@ -34,6 +40,7 @@
 > This patch is for the Xiaomi Mi Dash Cam, model `MJXCJLY01BY`, European region. Xiaomi lists the similarly named Mi Dash Cam 1S as model `MJXCJLY02BY`; that is a different camera and is not supported by this project.
 
 - [Simple overview](#simple-overview) — what this is, why it exists, what was fixed, supported Android versions, and installation.
+- [Common problems and FAQ](#common-problems-and-faq) — installation, Android 15/16, black preview, Wi-Fi, Poco F6, Mi account, and model compatibility.
 - [Technical details](#technical-details) — exact changes, account behavior, native compatibility, verification, and release identity.
 
 # Simple overview
@@ -57,6 +64,20 @@ The patched app provides:
 - replay downloaded videos;
 - change camera settings;
 - read help and user manuals without relying on dead websites.
+
+## Common problems this fixes
+
+This project is intended for owners of the **Xiaomi Mi Dash Cam `MJXCJLY01BY` European/EU model** whose original Mi Dash Cam app no longer works correctly on a newer Android phone. It addresses the common symptoms people encounter when trying to keep this camera usable:
+
+- **Mi Dash Cam APK will not install on Android 15 or Android 16** because the original app targets an obsolete Android API level;
+- **Mi Dash Cam connects to Wi-Fi but the app does not connect correctly** to the camera;
+- **black or missing live preview** after connecting to the dashcam;
+- crashes or freezes when opening camera, profile, help, manual, or settings screens;
+- recordings or thumbnails not loading correctly, or downloaded recordings not replaying as expected;
+- obsolete **Mi account / Xiaomi login** dependencies blocking normal local use;
+- compatibility problems on modern **ARM64**, **16 KiB page-size**, **HyperOS**, and Android devices.
+
+The final 2.0.0 release was hardware-tested with the European `MJXCJLY01BY` on a **Poco F6 running Android 16 / HyperOS 3**, including connection and reconnection, live preview, recording thumbnails, download, and playback. It is not a compatibility claim for the similarly named Mi Dash Cam 1S (`MJXCJLY02BY`).
 
 ## Why I made it
 
@@ -195,6 +216,40 @@ https://github.com/user-attachments/assets/804dea2e-40d6-498c-8e2b-68f1a68e1dcf
 </p>
 
 <p align="center"><em>Exact release-signed 2.0.0: physical Android 8.1/API-27 and Android 9/API-28 app/UI regression pass via Android Device Streaming.</em></p>
+
+## Common problems and FAQ
+
+### Does Xiaomi Mi Dash Cam MJXCJLY01BY work on Android 16?
+
+Yes, with this compatibility release. The exact release-signed 2.0.0 APK was fully tested with a European `MJXCJLY01BY` camera on a Poco F6 running Android 16 / HyperOS 3. Camera connection and reconnection, live preview, recording thumbnails, downloads, and playback passed the physical acceptance test.
+
+### Where can I download a working Mi Dash Cam APK?
+
+Use the **Download Latest APK** button at the top of this README. It links directly to the canonical signed APK attached to the latest supported GitHub release. For release identity and integrity information, verify the SHA-256 listed in `checksums/SHA256SUMS.txt`.
+
+### Why will the original Mi Dash Cam APK not install on Android 15 or Android 16?
+
+The final original European Mi Dash Cam app targets Android API 23. Android 15 introduced a minimum installable target SDK requirement that rejects apps targeting below API 24 during normal installation. This project raises the target while preserving the legacy camera functionality needed by `MJXCJLY01BY`.
+
+### Why does Mi Dash Cam show a black live preview?
+
+The legacy application and modern Android/network stacks do not always negotiate the camera's old RTSP/RTP-JPEG stream correctly. This release repairs the live-preview path and uses RTSP over TCP, which was verified during the physical camera test.
+
+### Does the patched app require a Mi account or Xiaomi login?
+
+No. Version 2.0.0 starts with an `Offline account` and is designed for local phone-to-camera use. The obsolete executable Mi-account login implementation was removed from the production build.
+
+### Does this work on Poco F6 and HyperOS?
+
+Yes. The final signed 2.0.0 release passed the complete physical-camera acceptance test on a Poco F6 running Android 16 / HyperOS 3. Other tested Android versions and the exact scope of each test are listed in the compatibility table above.
+
+### Is MJXCJLY01BY the same camera as Mi Dash Cam 1S / MJXCJLY02BY?
+
+No. `MJXCJLY01BY` is the supported European Mi Dash Cam model for this project. `MJXCJLY02BY` is the similarly named Mi Dash Cam 1S and is not claimed compatible.
+
+### Will this fix every Xiaomi or 70mai dashcam?
+
+No. This project deliberately targets the European Xiaomi Mi Dash Cam `MJXCJLY01BY`. It should not be treated as a universal Xiaomi, Mijia, or 70mai camera application.
 
 # Technical details
 
