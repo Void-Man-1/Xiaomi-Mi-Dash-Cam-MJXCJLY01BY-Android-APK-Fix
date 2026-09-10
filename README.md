@@ -12,6 +12,12 @@
 <!-- latest-apk-download:end -->
 
 <p align="center">
+  <a href="https://void-man-1.github.io/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/">
+    <img src="https://img.shields.io/badge/Open-Project%20Website-2563EB?style=for-the-badge&logo=githubpages&logoColor=white" alt="Open project website">
+  </a>
+</p>
+
+<p align="center">
   <img src="assets/app-icon.png" width="132" height="132" alt="Mi Dash Cam application icon">
 </p>
 
