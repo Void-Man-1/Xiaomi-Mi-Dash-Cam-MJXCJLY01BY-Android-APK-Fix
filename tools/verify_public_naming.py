@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import re
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -39,6 +40,23 @@ REQUIRED_APK_FILES = (
     "site/index.html",
     "site/ru/index.html",
     "site/pl/index.html",
+    "site/uk/index.html",
+    "site/de/index.html",
+)
+
+SITE_PAGES = (
+    "site/index.html",
+    "site/ru/index.html",
+    "site/pl/index.html",
+    "site/uk/index.html",
+    "site/de/index.html",
+)
+SITE_LANGUAGES = (
+    ("", "en", "English"),
+    ("pl/", "pl", "Polski"),
+    ("uk/", "uk", "Українська"),
+    ("de/", "de", "Deutsch"),
+    ("ru/", None, "Русский"),
 )
 
 
@@ -91,15 +109,50 @@ def main() -> int:
     if "Mi-Dash-Cam-${version}.apk" not in sync and "Mi-Dash-Cam-$version.apk" not in sync:
         errors.append(".github/workflows/update-readme-download.yml: canonical exact release asset pattern is missing")
 
-    for rel, expected_links in {
-        "site/index.html": ('href="ru/"', 'href="pl/"'),
-        "site/ru/index.html": ('href="../"', 'href="../pl/"'),
-        "site/pl/index.html": ('href="../"', 'href="../ru/"'),
-    }.items():
+    # The site uses absolute language links so the same selector works reliably
+    # from the root page and every localized subdirectory. Validate the actual
+    # language navigation block rather than requiring a particular relative-URL style.
+    site_base = f"https://void-man-1.github.io/{NEW_REPO}/"
+    for rel in SITE_PAGES:
         text = contents.get(rel, "")
-        for expected in expected_links:
-            if expected not in text:
-                errors.append(f"{rel}: missing language navigation {expected}")
+        nav_match = re.search(r'<nav\s+class="langs"[^>]*>(.*?)</nav>', text, re.DOTALL)
+        if not nav_match:
+            errors.append(f"{rel}: language navigation block is missing")
+            continue
+
+        nav = nav_match.group(1)
+        positions = []
+        for route, flag_code, native_name in SITE_LANGUAGES:
+            expected_href = f'href="{site_base}{route}"'
+            if expected_href not in nav:
+                errors.append(f"{rel}: missing language navigation {expected_href}")
+                continue
+            positions.append(nav.index(expected_href))
+            if native_name not in nav:
+                errors.append(f"{rel}: missing native language label {native_name!r}")
+
+            lang_code = flag_code or "ru"
+            link_match = re.search(
+                rf'<a\b(?=[^>]*hreflang="{lang_code}")[^>]*>.*?</a>',
+                nav,
+                re.DOTALL,
+            )
+            if not link_match:
+                errors.append(f"{rel}: missing language link for {lang_code}")
+                continue
+            link_html = link_match.group(0)
+            if flag_code:
+                prefix = "" if rel == "site/index.html" else "../"
+                expected_flag = f'src="{prefix}flags/{flag_code}.svg"'
+                if expected_flag not in link_html:
+                    errors.append(f"{rel}: missing static SVG flag {expected_flag}")
+            elif "flag" in link_html or "<img" in link_html or "🇷🇺" in link_html:
+                errors.append(f"{rel}: Russian selector must be text-only")
+
+        if positions != sorted(positions):
+            errors.append(f"{rel}: language order must be English, Polski, Українська, Deutsch, Русский")
+        if "🇷🇺" in nav:
+            errors.append(f"{rel}: Russian flag must not be present")
 
     if args.post_rename:
         site = contents.get("site/index.html", "")

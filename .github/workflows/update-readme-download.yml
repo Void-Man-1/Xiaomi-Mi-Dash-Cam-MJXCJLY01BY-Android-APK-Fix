@@ -88,17 +88,19 @@ jobs:
           readme.write_text(pattern.sub(banner, text, count=1), encoding='utf-8')
 
           localized = [
-              (Path('docs/README.ru.md'), 'Скачать'),
-              (Path('docs/README.pl.md'), 'Pobierz'),
+              (Path('docs/README.pl.md'), lambda name: f'Pobierz {name}'),
+              (Path('docs/README.uk.md'), lambda name: f'Завантажити {name}'),
+              (Path('docs/README.de.md'), lambda name: f'{name} herunterladen'),
+              (Path('docs/README.ru.md'), lambda name: f'Скачать {name}'),
           ]
-          for path, label in localized:
+          link_pattern = re.compile(
+              r'\*\*\[[^\]]*\.apk[^\]]*\]\(https://github\.com/[^\)]+\.apk\)\*\*'
+          )
+          for path, label_for in localized:
               if not path.exists():
                   continue
               body = path.read_text(encoding='utf-8')
-              link_pattern = re.compile(
-                  rf'\*\*\[{re.escape(label)} [^\]]+\.apk\]\(https://github\.com/[^\)]+\.apk\)\*\*'
-              )
-              replacement = f'**[{label} {apk_name}]({apk_url})**'
+              replacement = f'**[{label_for(apk_name)}]({apk_url})**'
               if link_pattern.search(body):
                   body = link_pattern.sub(replacement, body, count=1)
               else:
@@ -106,22 +108,25 @@ jobs:
               path.write_text(body, encoding='utf-8')
 
           site_pages = [
-              (Path('site/index.html'), 'Download'),
-              (Path('site/ru/index.html'), 'Скачать'),
-              (Path('site/pl/index.html'), 'Pobierz'),
+              (Path('site/index.html'), lambda name: f'Download {name}'),
+              (Path('site/pl/index.html'), lambda name: f'Pobierz {name}'),
+              (Path('site/uk/index.html'), lambda name: f'Завантажити {name}'),
+              (Path('site/de/index.html'), lambda name: f'{name} herunterladen'),
+              (Path('site/ru/index.html'), lambda name: f'Скачать {name}'),
           ]
           site_pattern = re.compile(
               r'<!-- latest-apk-site:start -->.*?<!-- latest-apk-site:end -->',
               re.DOTALL,
           )
-          for site, label in site_pages:
+          for site, label_for in site_pages:
               if not site.exists():
                   continue
               body = site.read_text(encoding='utf-8')
-              button = f'<!-- latest-apk-site:start --><a class="btn primary" href="{apk_url}">{label} {apk_name}</a><!-- latest-apk-site:end -->'
+              button = f'<!-- latest-apk-site:start --><a class="btn primary" href="{apk_url}">{label_for(apk_name)}</a><!-- latest-apk-site:end -->'
               if not site_pattern.search(body):
                   raise SystemExit(f'Site APK marker block not found in {site}')
-              body = site_pattern.sub(button, body, count=1)
+              # A page may intentionally repeat the canonical CTA (hero + download panel).
+              body = site_pattern.sub(button, body)
               body = re.sub(r'"softwareVersion":\s*"[^"]+"', f'"softwareVersion": "{version}"', body, count=1)
               body = re.sub(r'"downloadUrl":\s*"[^"]+"', f'"downloadUrl": "{apk_url}"', body, count=1)
               body = re.sub(
@@ -136,12 +141,24 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html; then
+          tracked=(
+            README.md
+            docs/README.pl.md
+            docs/README.uk.md
+            docs/README.de.md
+            docs/README.ru.md
+            site/index.html
+            site/pl/index.html
+            site/uk/index.html
+            site/de/index.html
+            site/ru/index.html
+          )
+          if git diff --quiet -- "${tracked[@]}"; then
             echo "All download links and site metadata already point to the canonical latest-release APK."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html
+          git add -- "${tracked[@]}"
           git commit -m "docs: sync canonical release APK links and site metadata"
           git push

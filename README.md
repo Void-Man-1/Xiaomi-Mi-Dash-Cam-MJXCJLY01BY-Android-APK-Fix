@@ -30,7 +30,7 @@
 
 <!-- discovery-language-links -->
 <p align="center">
-  <a href="docs/README.ru.md">Русский</a> · <a href="docs/README.pl.md">Polski</a>
+  <a href="README.md">English</a> · <a href="docs/README.pl.md">Polski</a> · <a href="docs/README.uk.md">Українська</a> · <a href="docs/README.de.md">Deutsch</a> · <a href="docs/README.ru.md">Русский</a>
 </p>
 
 <p align="center">
