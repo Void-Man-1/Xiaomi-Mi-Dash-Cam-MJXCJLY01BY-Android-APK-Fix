@@ -6,7 +6,7 @@ on:
       - fix-proof-gallery-video
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   browser-audit:
@@ -15,20 +15,75 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: fix-proof-gallery-video
+
+      - name: Point proof video at Pages media and stage deployment assets
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          mp4 = 'poco-f6-android16-v2.0.0-full-camera-test.mp4'
+          poster = 'poco-f6-android16-v2.0.0-video-poster.jpg'
+          raw_base = 'https://raw.githubusercontent.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/main/assets/evidence/'
+
+          pages = [
+              ('site/index.html', 'media/'),
+              ('site/pl/index.html', '../media/'),
+              ('site/uk/index.html', '../media/'),
+              ('site/de/index.html', '../media/'),
+              ('site/ru/index.html', '../media/'),
+          ]
+          for rel, prefix in pages:
+              path = Path(rel)
+              text = path.read_text(encoding='utf-8')
+              text = text.replace(raw_base + mp4, prefix + mp4)
+              text = text.replace(raw_base + poster, prefix + poster)
+              path.write_text(text, encoding='utf-8')
+
+          deploy = Path('.github/workflows/deploy-pages.yml')
+          text = deploy.read_text(encoding='utf-8')
+          if "- 'assets/evidence/**'" not in text:
+              text = text.replace("      - 'site/**'\n", "      - 'site/**'\n      - 'assets/evidence/**'\n")
+          stage = """      - name: Stage proof media\n        run: |\n          mkdir -p site/media\n          cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/\n          cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/\n\n"""
+          if 'name: Stage proof media' not in text:
+              text = text.replace('      - name: Configure Pages\n        uses: actions/configure-pages@v5\n\n', '      - name: Configure Pages\n        uses: actions/configure-pages@v5\n\n' + stage)
+          deploy.write_text(text, encoding='utf-8')
+          PY
+          mkdir -p site/media
+          cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/
+          cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
+
       - name: Install Chromium
         run: |
           npm install --no-save playwright@1.55.0
           npx playwright install --with-deps chromium
+
       - name: Start site
         run: |
           python -m http.server 8000 --directory site >/tmp/site-http.log 2>&1 &
           sleep 1
+
       - name: Run browser audit
         run: node tools/check_proof_gallery.js
+
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: proof-gallery-screenshots
           path: proof-audit/*.png
+          if-no-files-found: ignore
+
+      - name: Commit verified production changes and remove temporary audit files
+        if: success()
+        run: |
+          rm -rf site/media
+          rm -f .github/workflows/check-proof-gallery.yml
+          rm -f tools/check_proof_gallery.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'site: serve proof video from GitHub Pages'
+          git push origin HEAD:fix-proof-gallery-video
