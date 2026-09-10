@@ -6,7 +6,7 @@ The APK is intentionally ignored by Git. This keeps the 30 MB binary out of repo
 
 Release file:
 
-`Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk`
+`Mi-Dash-Cam-2.0.0.apk`
 
 APK SHA-256:
 

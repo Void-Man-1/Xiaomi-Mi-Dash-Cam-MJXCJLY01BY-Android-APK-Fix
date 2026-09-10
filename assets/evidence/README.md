@@ -1,6 +1,6 @@
 # Poco F6 Android 16 physical-test evidence
 
-This directory contains the privacy-redacted public evidence copy for the final Mi Dash Cam EU 2.0.0 hardware test.
+This directory contains the privacy-redacted public evidence copy for the final Mi Dash Cam 2.0.0 hardware test.
 
 ## Public evidence file
 

@@ -8,7 +8,7 @@
 
 ## Скачать
 
-**[Скачать Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk)**
+**[Скачать Mi-Dash-Cam-2.0.0.apk](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk)**
 
 Это канонический подписанный APK из текущего стабильного релиза GitHub. Для проверки файла используйте SHA-256 из [`checksums/SHA256SUMS.txt`](../checksums/SHA256SUMS.txt).
 

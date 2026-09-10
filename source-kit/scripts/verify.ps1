@@ -20,7 +20,7 @@ Fail when the APK is unsigned. By default a verified unsigned build is accepted
 for inspection and clearly reported as unsigned.
 
 .EXAMPLE
-.\scripts\verify.ps1 -ApkPath .\build\Mi-Dash-Cam-EU-2.0.0-unsigned.apk
+.\scripts\verify.ps1 -ApkPath .\build\Mi-Dash-Cam-2.0.0-unsigned.apk
 #>
 [CmdletBinding()]
 param(

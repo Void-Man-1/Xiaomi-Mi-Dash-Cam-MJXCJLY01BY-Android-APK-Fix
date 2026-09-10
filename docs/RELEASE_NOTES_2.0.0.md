@@ -1,10 +1,10 @@
-# Mi Dash Cam EU 2.0.0 release notes
+# Mi Dash Cam 2.0.0 release notes
 
 Release status: final, exact release-signed APK verified and physically hardware accepted.
 
 ## Release identity
 
-- Release file: `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk`
+- Release file: `Mi-Dash-Cam-2.0.0.apk`
 - Camera: Xiaomi Mi Dash Cam `MJXCJLY01BY`, European region
 - App version: `2.0.0` (`versionCode 20000`)
 - Package: `com.banyac.mijia.app.eu`
@@ -99,7 +99,7 @@ The VLC teardown change follows VideoLAN's [2017 ANR-prevention commit](https://
 
 1. Save anything needed from an existing Mi Dash Cam installation.
 2. Uninstall Xiaomi's stock app or any earlier community 1.1.x build. The fresh 2.0.0 signing key prevents an in-place upgrade, and uninstalling clears the old app's local data.
-3. Download `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk` from the GitHub release.
+3. Download `Mi-Dash-Cam-2.0.0.apk` from the GitHub release.
 4. Verify that its SHA-256 is exactly `2F189C0D3A6C9965036EDDBFA927EB7FD720C47D611991EB5EC1D1055E89B887`.
 5. Install the APK and launch it as `Offline account`.
 6. Join the `MJXCJLY01BY` Wi-Fi network and tell Android to remain connected if it warns that the camera network has no internet.

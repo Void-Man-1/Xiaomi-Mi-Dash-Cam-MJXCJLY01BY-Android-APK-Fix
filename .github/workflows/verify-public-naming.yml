@@ -1,0 +1,21 @@
+name: Verify public naming
+
+on:
+  push:
+    branches:
+      - main
+      - migration/uniform-naming
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify canonical public naming
+        run: python tools/verify_public_naming.py

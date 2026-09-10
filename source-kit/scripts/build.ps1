@@ -144,7 +144,7 @@ $stagePath = Join-Path $buildRoot ('.build-' + [Guid]::NewGuid().ToString('N'))
 Assert-SafeGeneratedDirectory -Path $stagePath -AllowedRoot $buildRoot
 [void][IO.Directory]::CreateDirectory($stagePath)
 
-$releaseName = "Mi-Dash-Cam-EU-$($manifest.releaseVersion)"
+$releaseName = "Mi-Dash-Cam-$($manifest.releaseVersion)"
 if (-not [bool]$state.completeBuildInputs -or $missingTargets.Count -gt 0) {
     $releaseName += '-partial-development'
 }
