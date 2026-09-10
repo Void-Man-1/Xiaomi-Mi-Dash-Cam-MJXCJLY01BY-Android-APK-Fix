@@ -1,0 +1,95 @@
+name: Viewport audit once
+
+on:
+  push:
+    branches: [audit-layout-and-localization]
+
+permissions:
+  contents: read
+
+jobs:
+  viewport-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install headless Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start static site
+        run: |
+          python -m http.server 8000 --directory site >/tmp/site-http.log 2>&1 &
+          sleep 1
+      - name: Check geometry, flags and language navigation
+        run: |
+          node <<'NODE'
+          const { chromium } = require('playwright');
+          const assert = require('node:assert/strict');
+
+          (async () => {
+            const browser = await chromium.launch({headless: true});
+            const page = await browser.newPage();
+            await page.route('https://raw.githubusercontent.com/**', route => route.abort());
+
+            const locales = ['/', '/pl/', '/uk/', '/de/', '/ru/'];
+            const widths = [2560, 1920, 1440, 1180, 1024, 900, 820, 768, 680, 390, 360];
+            const expectedOrder = ['en', 'pl', 'uk', 'de', 'ru'];
+
+            for (const locale of locales) {
+              for (const width of widths) {
+                await page.setViewportSize({width, height: 1000});
+                await page.goto(`http://127.0.0.1:8000${locale}`, {waitUntil: 'domcontentloaded'});
+
+                const result = await page.evaluate(() => {
+                  const vw = document.documentElement.clientWidth;
+                  const wrapRects = [...document.querySelectorAll('.wrap')].map(el => {
+                    const r = el.getBoundingClientRect();
+                    return {left: r.left, right: vw - r.right, width: r.width};
+                  });
+                  const trust = document.querySelector('.trust-strip')?.getBoundingClientRect();
+                  const langs = document.querySelector('.langs');
+                  const links = [...document.querySelectorAll('.langs .lang')];
+                  const order = links.map(a => a.getAttribute('hreflang'));
+                  const russian = document.querySelector('.lang[hreflang="ru"]');
+                  const flagImgs = [...document.querySelectorAll('.langs .flag-img')];
+                  return {
+                    vw,
+                    scrollWidth: document.documentElement.scrollWidth,
+                    wrapRects,
+                    trust: trust ? {left: trust.left, right: vw - trust.right, width: trust.width} : null,
+                    langClientWidth: langs?.clientWidth ?? 0,
+                    langScrollWidth: langs?.scrollWidth ?? 0,
+                    order,
+                    russianHasImage: !!russian?.querySelector('img'),
+                    russianText: russian?.textContent.trim(),
+                    flagCount: flagImgs.length,
+                    brokenFlags: flagImgs.filter(img => !img.complete || img.naturalWidth === 0).map(img => img.src),
+                  };
+                });
+
+                assert.ok(result.scrollWidth <= result.vw + 1, `${locale} @ ${width}px: horizontal page overflow ${result.scrollWidth} > ${result.vw}`);
+                for (const [i, rect] of result.wrapRects.entries()) {
+                  assert.ok(Math.abs(rect.left - rect.right) <= 1.5, `${locale} @ ${width}px: .wrap #${i} not centered (${rect.left}px vs ${rect.right}px)`);
+                  assert.ok(rect.left >= -0.5 && rect.right >= -0.5, `${locale} @ ${width}px: .wrap #${i} escapes viewport`);
+                }
+                assert.ok(result.trust, `${locale} @ ${width}px: trust strip missing`);
+                assert.ok(Math.abs(result.trust.left - result.trust.right) <= 1.5, `${locale} @ ${width}px: trust strip not centered`);
+                assert.ok(result.langScrollWidth <= result.langClientWidth + 1, `${locale} @ ${width}px: language row requires horizontal scrolling (${result.langScrollWidth} > ${result.langClientWidth})`);
+                assert.deepEqual(result.order, expectedOrder, `${locale} @ ${width}px: wrong language order`);
+                assert.equal(result.russianHasImage, false, `${locale} @ ${width}px: Russian selector contains an image`);
+                assert.equal(result.russianText, 'Русский', `${locale} @ ${width}px: Russian selector text changed`);
+                assert.equal(result.flagCount, 4, `${locale} @ ${width}px: expected exactly four flags`);
+                assert.deepEqual(result.brokenFlags, [], `${locale} @ ${width}px: one or more SVG flags failed to load`);
+
+                console.log(`${locale.padEnd(5)} ${String(width).padStart(4)}px OK | gutter ${result.wrapRects[0].left.toFixed(1)}px | trust ${result.trust.width.toFixed(1)}px | languages ${result.langScrollWidth}/${result.langClientWidth}`);
+              }
+            }
+            await browser.close();
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
