@@ -35,6 +35,11 @@
     link.append(flag);
   });
 
+  // Keep Russian available, but place it at the far right/end of the selector.
+  const languageNav = document.querySelector('.langs');
+  const russianLink = languageNav?.querySelector('.lang[hreflang="ru"]');
+  if (languageNav && russianLink) languageNav.append(russianLink);
+
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!reduceMotion && 'IntersectionObserver' in window) {
     const observer = new IntersectionObserver((entries) => {
