@@ -41,6 +41,7 @@
 
 - [Simple overview](#simple-overview) — what this is, why it exists, what was fixed, supported Android versions, and installation.
 - [Common problems and FAQ](#common-problems-and-faq) — installation, Android 15/16, black preview, Wi-Fi, Poco F6, Mi account, and model compatibility.
+- [Troubleshooting guide](docs/TROUBLESHOOTING.md) — symptom-by-symptom help for installation, connection, black preview, freezes, account/login, and recordings.
 - [Technical details](#technical-details) — exact changes, account behavior, native compatibility, verification, and release identity.
 
 # Simple overview
@@ -78,6 +79,8 @@ This project is intended for owners of the **Xiaomi Mi Dash Cam `MJXCJLY01BY` Eu
 - compatibility problems on modern **ARM64**, **16 KiB page-size**, **HyperOS**, and Android devices.
 
 The final 2.0.0 release was hardware-tested with the European `MJXCJLY01BY` on a **Poco F6 running Android 16 / HyperOS 3**, including connection and reconnection, live preview, recording thumbnails, download, and playback. It is not a compatibility claim for the similarly named Mi Dash Cam 1S (`MJXCJLY02BY`).
+
+For symptom-by-symptom diagnosis, see the dedicated [Mi Dash Cam MJXCJLY01BY troubleshooting guide](docs/TROUBLESHOOTING.md).
 
 ## Why I made it
 
