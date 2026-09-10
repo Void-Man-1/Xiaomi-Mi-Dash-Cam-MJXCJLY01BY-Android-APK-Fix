@@ -35,7 +35,7 @@ jobs:
             await page.route('https://raw.githubusercontent.com/**', route => route.abort());
 
             const locales = ['/', '/pl/', '/uk/', '/de/', '/ru/'];
-            const widths = [2560, 1920, 1440, 1180, 1024, 900, 820, 768, 680, 390, 360];
+            const widths = [2560, 1920, 1440, 1366, 1280, 1241, 1240, 1200, 1180, 1100, 1024, 900, 820, 768, 680, 390, 360];
             const expectedOrder = ['en', 'pl', 'uk', 'de', 'ru'];
 
             for (const locale of locales) {
@@ -94,4 +94,4 @@ jobs:
           });
           NODE
 
-# Re-run on the post-fix branch state before this temporary workflow is removed.
+# Final expanded matrix for all localized header lengths and desktop/tablet/mobile transitions.
