@@ -1,0 +1,117 @@
+name: Post-rename URL migration once
+
+on:
+  push:
+    branches: [migration/post-rename-urls]
+    paths:
+      - '.github/workflows/post-rename-url-migration.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: migration/post-rename-urls
+
+      - name: Confirm old slug is still detectable
+        shell: bash
+        run: |
+          set -euo pipefail
+          if python tools/verify_public_naming.py --post-rename; then
+            echo "Expected the post-rename validator to fail before URL migration, but it passed." >&2
+            exit 1
+          fi
+          echo "Pre-migration failure confirmed."
+
+      - name: Replace old repository slug in public text
+        shell: python
+        run: |
+          from pathlib import Path
+
+          root = Path('.')
+          old = 'Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY'
+          new = 'Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix'
+          suffixes = {'.md', '.txt', '.html', '.xml', '.json', '.py', '.ps1', '.yml', '.yaml'}
+          skip = {
+              'tools/verify_public_naming.py',
+              '.github/workflows/post-rename-url-migration.yml',
+          }
+
+          changed = []
+          for path in root.rglob('*'):
+              if not path.is_file() or path.suffix.lower() not in suffixes:
+                  continue
+              rel = path.as_posix().removeprefix('./')
+              if rel in skip or rel.startswith('.github/workflows/'):
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              if old not in text:
+                  continue
+              path.write_text(text.replace(old, new), encoding='utf-8')
+              changed.append(rel)
+
+          print(f'Updated {len(changed)} repository files:')
+          for rel in changed:
+              print(f'- {rel}')
+
+      - name: Update release-body URLs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          old='Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY'
+          new='Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix'
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0.0")"
+          release_id="$(jq -r '.id' <<<"$release_json")"
+          body="$(jq -r '.body // ""' <<<"$release_json")"
+          new_body="${body//$old/$new}"
+          if [[ "$new_body" != "$body" ]]; then
+            jq -n --arg body "$new_body" '{body:$body}' | gh api --method PATCH "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --input - >/dev/null
+            echo "Release body URLs updated."
+          else
+            echo "Release body already uses the new repository slug."
+          fi
+
+      - name: Verify post-rename naming and release URLs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tools/verify_public_naming.py --post-rename
+          old='Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY'
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/v2.0.0")"
+          body="$(jq -r '.body // ""' <<<"$release_json")"
+          asset_name="$(jq -r '.assets[0].name // ""' <<<"$release_json")"
+          asset_digest="$(jq -r '.assets[0].digest // ""' <<<"$release_json")"
+          asset_url="$(jq -r '.assets[0].browser_download_url // ""' <<<"$release_json")"
+          if [[ "$body" == *"$old"* ]]; then
+            echo "Old repository slug remains in release body." >&2
+            exit 1
+          fi
+          [[ "$asset_name" == 'Mi-Dash-Cam-2.0.0.apk' ]]
+          [[ "$asset_digest" == 'sha256:2f189c0d3a6c9965036eddbfa927eb7fd720c47d611991eb5ec1d1055e89b887' ]]
+          [[ "$asset_url" == *"/${GITHUB_REPOSITORY}/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk" ]]
+          echo "Release asset identity and new-slug URL verified."
+
+      - name: Commit URL migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No repository URL changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A -- ':!.github/workflows'
+          git commit -m "docs: migrate URLs to renamed repository"
+          git push origin HEAD:migration/post-rename-urls
