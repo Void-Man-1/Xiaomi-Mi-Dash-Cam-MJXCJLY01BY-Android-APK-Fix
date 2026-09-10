@@ -109,6 +109,8 @@ jobs:
               (Path('site/index.html'), 'Download'),
               (Path('site/ru/index.html'), 'Скачать'),
               (Path('site/pl/index.html'), 'Pobierz'),
+              (Path('site/uk/index.html'), 'Завантажити'),
+              (Path('site/de/index.html'), 'Herunterladen'),
           ]
           site_pattern = re.compile(
               r'<!-- latest-apk-site:start -->.*?<!-- latest-apk-site:end -->',
@@ -121,7 +123,8 @@ jobs:
               button = f'<!-- latest-apk-site:start --><a class="btn primary" href="{apk_url}">{label} {apk_name}</a><!-- latest-apk-site:end -->'
               if not site_pattern.search(body):
                   raise SystemExit(f'Site APK marker block not found in {site}')
-              body = site_pattern.sub(button, body, count=1)
+              # A page may intentionally repeat the canonical CTA (hero + download panel).
+              body = site_pattern.sub(button, body)
               body = re.sub(r'"softwareVersion":\s*"[^"]+"', f'"softwareVersion": "{version}"', body, count=1)
               body = re.sub(r'"downloadUrl":\s*"[^"]+"', f'"downloadUrl": "{apk_url}"', body, count=1)
               body = re.sub(
@@ -136,12 +139,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html; then
+          if git diff --quiet -- README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html site/uk/index.html site/de/index.html; then
             echo "All download links and site metadata already point to the canonical latest-release APK."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html
+          git add README.md docs/README.ru.md docs/README.pl.md site/index.html site/ru/index.html site/pl/index.html site/uk/index.html site/de/index.html
           git commit -m "docs: sync canonical release APK links and site metadata"
           git push
