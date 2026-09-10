@@ -2,9 +2,7 @@ name: Verify public naming
 
 on:
   push:
-    branches:
-      - main
-      - migration/uniform-naming
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -18,4 +16,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify canonical public naming
-        run: python tools/verify_public_naming.py
+        run: python tools/verify_public_naming.py --post-rename
