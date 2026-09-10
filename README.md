@@ -1,12 +1,12 @@
 <!-- latest-apk-download:start -->
 <p align="center">
-  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk">
+  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk">
     <img src="https://img.shields.io/badge/Download-Latest%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download latest Mi Dash Cam APK">
   </a>
 </p>
 
 <p align="center">
-  <strong>Latest release:</strong> <code>Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk</code><br>
+  <strong>Latest release:</strong> <code>Mi-Dash-Cam-2.0.0.apk</code><br>
   Download directly on Android, or on a PC to transfer to your phone.
 </p>
 <!-- latest-apk-download:end -->
@@ -21,10 +21,10 @@
   <img src="assets/app-icon.png" width="132" height="132" alt="Mi Dash Cam application icon">
 </p>
 
-<h1 align="center">Mi Dash cam Android 8.1-16 fix<br><code>MJXCJLY01BY</code></h1>
+<h1 align="center">Xiaomi Mi Dash Cam MJXCJLY01BY Android APK Fix</h1>
 
 <p align="center">
-  Compatibility-fixed Xiaomi Mi Dash Cam <code>MJXCJLY01BY</code> EU APK for Android 8.1–16 and HyperOS.<br>
+  Compatibility-fixed Xiaomi Mi Dash Cam <code>MJXCJLY01BY</code> APK for Android 8.1–16 and HyperOS.<br>
   Restores installation, camera Wi-Fi connection, live preview, recordings, downloads, playback, and accountless local use on modern phones.
 </p>
 
@@ -167,7 +167,7 @@ Those remotely hosted phones cannot join the `MJXCJLY01BY` local Wi-Fi. They did
 
 ## Download and install
 
-Download the exact release-signed `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk` from the repository's [GitHub Releases page](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest). Do not install an unsigned, debug, or differently signed build presented under the same version.
+Download the exact release-signed `Mi-Dash-Cam-2.0.0.apk` from the repository's [GitHub Releases page](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest). Do not install an unsigned, debug, or differently signed build presented under the same version.
 
 1. Download the exact 2.0.0 APK from GitHub Releases.
 2. Verify its SHA-256 against [`checksums/SHA256SUMS.txt`](checksums/SHA256SUMS.txt).

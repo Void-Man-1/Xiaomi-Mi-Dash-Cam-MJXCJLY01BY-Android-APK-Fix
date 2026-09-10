@@ -1,4 +1,4 @@
-# Mi Dash Cam EU 2.0.0 final verification report
+# Mi Dash Cam 2.0.0 final verification report
 
 - Report date: 2026-09-02
 - Package: `com.banyac.mijia.app.eu`
@@ -18,7 +18,7 @@ Camera firmware OTA was not part of acceptance and is not claimed as working or 
 
 ## Exact release artifact
 
-- File: `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk`
+- File: `Mi-Dash-Cam-2.0.0.apk`
 - Size: 30,437,934 bytes
 - APK SHA-256: `2F189C0D3A6C9965036EDDBFA927EB7FD720C47D611991EB5EC1D1055E89B887`
 - Signing-certificate SHA-256: `BE7E580BAE6723900DD30952B1DF215B282B445BCADAFC621C03B8D9CF81A1BD`

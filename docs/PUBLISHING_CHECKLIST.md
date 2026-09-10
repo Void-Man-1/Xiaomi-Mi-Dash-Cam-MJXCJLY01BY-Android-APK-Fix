@@ -25,7 +25,7 @@ Unchecked items in this section remain unresolved or undocumented and are not re
 
 Version 2.0.0 starts a new signing lineage. It cannot upgrade over Xiaomi's stock app or community 1.1.x builds. Testers and users must uninstall the existing app first, which clears its app data. Every future 2.0.0+ release must use the same new key.
 
-- [x] Build and sign the exact `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk`; do not use the debug smoke APK.
+- [x] Build and sign the exact `Mi-Dash-Cam-2.0.0.apk`; do not use the debug smoke APK.
 - [x] Confirm package `com.banyac.mijia.app.eu`, `versionName 2.0.0`, and `versionCode 20000`.
 - [x] Confirm the APK uses the new 2.0.0 release key and record certificate SHA-256 `BE7E580BAE6723900DD30952B1DF215B282B445BCADAFC621C03B8D9CF81A1BD`.
 - [x] Verify APK signatures v1/v2/v3 and 16 KiB ZIP/ELF alignment.
@@ -50,7 +50,7 @@ This open continuity task does not alter the completed test result, but losing t
 
 - [x] Create tag `v2.0.0` at the accepted source revision.
 - [x] Paste the final `docs/RELEASE_NOTES_2.0.0.md` into the GitHub Release description.
-- [x] Upload `release-assets/Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk` as a Release asset.
+- [x] Upload `release-assets/Mi-Dash-Cam-2.0.0.apk` as a Release asset.
 - [x] Publish the release as latest and confirm the README release link and APK download return HTTP 200 without authentication.
 
 ## Never publish

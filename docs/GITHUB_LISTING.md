@@ -4,11 +4,11 @@ These values define the public repository listing.
 
 ## Repository name
 
-`Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY`
+`Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix`
 
 ## About description
 
-Mi Dash cam Android 8.1-16 fix for Xiaomi MJXCJLY01BY EU: Poco F6/HyperOS 3, live preview, downloads, offline account, ARM64/16K, and manuals.
+Android compatibility APK for Xiaomi Mi Dash Cam MJXCJLY01BY. Restores installation, Wi-Fi, live preview, downloads and playback on modern Android / HyperOS; tested on Poco F6.
 
 ## Suggested topics
 
@@ -16,13 +16,13 @@ Mi Dash cam Android 8.1-16 fix for Xiaomi MJXCJLY01BY EU: Poco F6/HyperOS 3, liv
 
 ## Suggested social preview text
 
-Keep the Xiaomi Mi Dash Cam MJXCJLY01BY working on modern Android. The 2.0.0 EU compatibility release provides accountless startup, ARM64/16 KiB support, repaired help/manuals, RTSP/TCP live preview, and recurrent-reconnect hardening. Full physical-camera operation passed on a Poco F6 running Android 16 / HyperOS 3.
+Keep the Xiaomi Mi Dash Cam MJXCJLY01BY working on modern Android. Version 2.0.0 provides accountless startup, ARM64/16 KiB support, repaired help/manuals, RTSP/TCP live preview, and reconnect hardening. Full physical-camera operation passed on a Poco F6 running Android 16 / HyperOS 3.
 
 ## First release
 
 - Tag: `v2.0.0`
-- Title: `Mi Dash Cam MJXCJLY01BY EU Android 8.1-16 fix 2.0.0`
-- Asset: `Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk`
+- Title: `Mi Dash Cam 2.0.0`
+- Asset: `Mi-Dash-Cam-2.0.0.apk`
 - Checksum file: `checksums/SHA256SUMS.txt`
 - Release notes: `docs/RELEASE_NOTES_2.0.0.md`
 

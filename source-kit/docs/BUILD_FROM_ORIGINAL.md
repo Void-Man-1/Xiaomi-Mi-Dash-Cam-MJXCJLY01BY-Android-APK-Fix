@@ -105,7 +105,7 @@ A contributor-signed APK belongs to a different signing lineage from the project
 For an explicitly partial development APK:
 
 ```powershell
-.\scripts\verify.ps1 -AllowPartial -ApkPath ".\build\Mi-Dash-Cam-EU-2.0.0-partial-development-unsigned.apk"
+.\scripts\verify.ps1 -AllowPartial -ApkPath ".\build\Mi-Dash-Cam-2.0.0-partial-development-unsigned.apk"
 ```
 
 Verification should cover at least:

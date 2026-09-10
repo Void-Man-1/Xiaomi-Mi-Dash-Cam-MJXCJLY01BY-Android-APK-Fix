@@ -52,7 +52,7 @@ For a code-only development workspace without the local native libraries and man
 ```powershell
 .\scripts\apply-patches.ps1 -AllowPartial
 .\scripts\build.ps1 -AllowPartial
-.\scripts\verify.ps1 -AllowPartial -ApkPath .\build\Mi-Dash-Cam-EU-2.0.0-partial-development-unsigned.apk
+.\scripts\verify.ps1 -AllowPartial -ApkPath .\build\Mi-Dash-Cam-2.0.0-partial-development-unsigned.apk
 ```
 
 The default build is unsigned. Signing is optional and uses a contributor-owned key:
