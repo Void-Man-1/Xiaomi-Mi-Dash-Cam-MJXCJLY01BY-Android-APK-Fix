@@ -1,0 +1,36 @@
+name: Apply uniform naming migration once
+
+on:
+  push:
+    branches: [migration/uniform-naming]
+    paths:
+      - 'tools/apply_uniform_naming_migration.py'
+      - '.github/workflows/apply-uniform-naming-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: migration/uniform-naming
+      - name: Apply migration
+        run: python tools/apply_uniform_naming_migration.py
+      - name: Verify canonical naming
+        run: python tools/verify_public_naming.py
+      - name: Commit migration
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No migration changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "refactor: standardize Mi Dash Cam project naming"
+          git push origin HEAD:migration/uniform-naming
