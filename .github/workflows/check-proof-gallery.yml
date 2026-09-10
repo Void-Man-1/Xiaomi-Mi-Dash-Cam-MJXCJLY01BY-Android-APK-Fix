@@ -16,6 +16,11 @@ jobs:
         with:
           ref: fix-proof-gallery-video
 
+      - name: Inspect source video
+        run: |
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,pix_fmt,width,height,r_frame_rate -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
+          ffprobe -v error -show_entries format=format_name,duration,size -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
+
       - name: Point proof video at Pages media and stage deployment assets
         run: |
           python <<'PY'
@@ -56,18 +61,18 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install Chromium
-        run: |
-          npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+      - name: Install Playwright library
+        run: npm install --no-save playwright@1.55.0
 
       - name: Start site
         run: |
           python -m http.server 8000 --directory site >/tmp/site-http.log 2>&1 &
           sleep 1
 
-      - name: Run browser audit
-        run: node tools/check_proof_gallery.js
+      - name: Run browser audit in Google Chrome
+        run: |
+          sed -i "s/chromium.launch({ headless: true })/chromium.launch({ channel: 'chrome', headless: true })/" tools/check_proof_gallery.js
+          node tools/check_proof_gallery.js
 
       - uses: actions/upload-artifact@v4
         if: always()
