@@ -30,6 +30,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site tools/verify_public_naming.py .github/workflows/apply-site-audit-once.yml tools/site_copy_audit_once.py
+          git add -A
           git commit -m "site: polish layout and native-language copy"
           git push origin HEAD:audit-layout-and-localization
