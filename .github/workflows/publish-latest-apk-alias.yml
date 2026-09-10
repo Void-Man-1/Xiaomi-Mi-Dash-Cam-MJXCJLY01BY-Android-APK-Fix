@@ -1,0 +1,63 @@
+name: Publish latest APK alias
+
+on:
+  release:
+    types: [published, edited]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/publish-latest-apk-alias.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: latest-apk-alias
+  cancel-in-progress: true
+
+jobs:
+  publish-alias:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find latest release APK
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+          tag="$(jq -r '.tag_name' <<<"$release_json")"
+          source_url="$(jq -r '[.assets[] | select(.name | endswith(".apk")) | select(.name != "Mi-Dash-Cam-EU-latest.apk")][0].browser_download_url // empty' <<<"$release_json")"
+
+          if [[ -z "$source_url" ]]; then
+            echo "No source APK found in latest release: $tag" >&2
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "source_url=$source_url" >> "$GITHUB_OUTPUT"
+
+      - name: Create stable latest APK asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          SOURCE_URL: ${{ steps.release.outputs.source_url }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          curl --fail --location --retry 3 "$SOURCE_URL" --output Mi-Dash-Cam-EU-latest.apk
+          gh release upload "$TAG" Mi-Dash-Cam-EU-latest.apk --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Verify stable download URL
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s Mi-Dash-Cam-EU-latest.apk
+          echo "Stable alias published for $TAG"
+          echo "https://github.com/${GITHUB_REPOSITORY}/releases/latest/download/Mi-Dash-Cam-EU-latest.apk"
