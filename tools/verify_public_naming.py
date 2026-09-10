@@ -52,11 +52,11 @@ SITE_PAGES = (
     "site/de/index.html",
 )
 SITE_LANGUAGES = (
-    ("", "🇬🇧", "English"),
-    ("ru/", "🇷🇺", "Русский"),
-    ("pl/", "🇵🇱", "Polski"),
-    ("uk/", "🇺🇦", "Українська"),
-    ("de/", "🇩🇪", "Deutsch"),
+    ("", "en", "English"),
+    ("pl/", "pl", "Polski"),
+    ("uk/", "uk", "Українська"),
+    ("de/", "de", "Deutsch"),
+    ("ru/", None, "Русский"),
 )
 
 
@@ -121,14 +121,38 @@ def main() -> int:
             continue
 
         nav = nav_match.group(1)
-        for route, flag, native_name in SITE_LANGUAGES:
+        positions = []
+        for route, flag_code, native_name in SITE_LANGUAGES:
             expected_href = f'href="{site_base}{route}"'
             if expected_href not in nav:
                 errors.append(f"{rel}: missing language navigation {expected_href}")
-            if flag not in nav:
-                errors.append(f"{rel}: missing language flag {flag}")
+                continue
+            positions.append(nav.index(expected_href))
             if native_name not in nav:
                 errors.append(f"{rel}: missing native language label {native_name!r}")
+
+            lang_code = flag_code or "ru"
+            link_match = re.search(
+                rf'<a\b(?=[^>]*hreflang="{lang_code}")[^>]*>.*?</a>',
+                nav,
+                re.DOTALL,
+            )
+            if not link_match:
+                errors.append(f"{rel}: missing language link for {lang_code}")
+                continue
+            link_html = link_match.group(0)
+            if flag_code:
+                prefix = "" if rel == "site/index.html" else "../"
+                expected_flag = f'src="{prefix}flags/{flag_code}.svg"'
+                if expected_flag not in link_html:
+                    errors.append(f"{rel}: missing static SVG flag {expected_flag}")
+            elif "flag" in link_html or "<img" in link_html or "🇷🇺" in link_html:
+                errors.append(f"{rel}: Russian selector must be text-only")
+
+        if positions != sorted(positions):
+            errors.append(f"{rel}: language order must be English, Polski, Українська, Deutsch, Русский")
+        if "🇷🇺" in nav:
+            errors.append(f"{rel}: Russian flag must not be present")
 
     if args.post_rename:
         site = contents.get("site/index.html", "")
