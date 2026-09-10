@@ -1,0 +1,111 @@
+name: Update README download
+
+on:
+  release:
+    types: [published, edited]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/update-readme-download.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: readme-release-download
+  cancel-in-progress: true
+
+jobs:
+  update-download:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find canonical APK in latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh api "repos/${GITHUB_REPOSITORY}/releases/latest")"
+          tag="$(jq -r '.tag_name' <<<"$release_json")"
+          apk_name="$(jq -r '[.assets[] | select(.name | endswith(".apk")) | select(.name != "Mi-Dash-Cam-EU-latest.apk")][0].name // empty' <<<"$release_json")"
+          apk_url="$(jq -r '[.assets[] | select(.name | endswith(".apk")) | select(.name != "Mi-Dash-Cam-EU-latest.apk")][0].browser_download_url // empty' <<<"$release_json")"
+          alias_id="$(jq -r '[.assets[] | select(.name == "Mi-Dash-Cam-EU-latest.apk")][0].id // empty' <<<"$release_json")"
+
+          if [[ -z "$apk_name" || -z "$apk_url" ]]; then
+            echo "No canonical APK found in latest release: $tag" >&2
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
+          echo "apk_url=$apk_url" >> "$GITHUB_OUTPUT"
+          echo "alias_id=$alias_id" >> "$GITHUB_OUTPUT"
+
+      - name: Remove obsolete latest-name alias
+        if: steps.release.outputs.alias_id != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ALIAS_ID: ${{ steps.release.outputs.alias_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${ALIAS_ID}"
+
+      - name: Update README download banner
+        env:
+          APK_NAME: ${{ steps.release.outputs.apk_name }}
+          APK_URL: ${{ steps.release.outputs.apk_url }}
+        shell: python
+        run: |
+          import os
+          import re
+          from pathlib import Path
+
+          readme = Path('README.md')
+          text = readme.read_text(encoding='utf-8')
+          apk_name = os.environ['APK_NAME']
+          apk_url = os.environ['APK_URL']
+
+          banner = f'''<!-- latest-apk-download:start -->
+          <p align="center">
+            <a href="{apk_url}">
+              <img src="https://img.shields.io/badge/Download-Latest%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download latest Mi Dash Cam APK">
+            </a>
+          </p>
+
+          <p align="center">
+            <strong>Latest release:</strong> <code>{apk_name}</code><br>
+            Download directly on Android, or on a PC to transfer to your phone.
+          </p>
+          <!-- latest-apk-download:end -->'''
+
+          banner = '\n'.join(line.lstrip() if line.startswith('          ') else line for line in banner.splitlines())
+
+          pattern = re.compile(
+              r'<!-- latest-apk-download:start -->.*?<!-- latest-apk-download:end -->',
+              re.DOTALL,
+          )
+          if not pattern.search(text):
+              raise SystemExit('README download marker block not found')
+
+          updated = pattern.sub(banner, text, count=1)
+          readme.write_text(updated, encoding='utf-8')
+
+      - name: Commit README change
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- README.md; then
+            echo "README already points to the canonical latest-release APK."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md
+          git commit -m "docs: link download button to canonical release APK"
+          git push
