@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - fix-proof-gallery-video
+    paths:
+      - '.github/workflows/check-proof-gallery.yml'
 
 permissions:
   contents: write
@@ -16,14 +18,7 @@ jobs:
         with:
           ref: fix-proof-gallery-video
 
-      - name: Install FFmpeg and inspect source video
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,pix_fmt,width,height,r_frame_rate -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
-          ffprobe -v error -show_entries format=format_name,duration,size -of default=noprint_wrappers=1 assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4
-
-      - name: Point proof video at Pages media and stage deployment assets
+      - name: Stage same-origin proof media
         run: |
           python <<'PY'
           from pathlib import Path
@@ -31,7 +26,6 @@ jobs:
           mp4 = 'poco-f6-android16-v2.0.0-full-camera-test.mp4'
           poster = 'poco-f6-android16-v2.0.0-video-poster.jpg'
           raw_base = 'https://raw.githubusercontent.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/main/assets/evidence/'
-
           pages = [
               ('site/index.html', 'media/'),
               ('site/pl/index.html', '../media/'),
@@ -45,15 +39,6 @@ jobs:
               text = text.replace(raw_base + mp4, prefix + mp4)
               text = text.replace(raw_base + poster, prefix + poster)
               path.write_text(text, encoding='utf-8')
-
-          deploy = Path('.github/workflows/deploy-pages.yml')
-          text = deploy.read_text(encoding='utf-8')
-          if "- 'assets/evidence/**'" not in text:
-              text = text.replace("      - 'site/**'\n", "      - 'site/**'\n      - 'assets/evidence/**'\n")
-          stage = """      - name: Stage proof media\n        run: |\n          mkdir -p site/media\n          cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/\n          cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/\n\n"""
-          if 'name: Stage proof media' not in text:
-              text = text.replace('      - name: Configure Pages\n        uses: actions/configure-pages@v5\n\n', '      - name: Configure Pages\n        uses: actions/configure-pages@v5\n\n' + stage)
-          deploy.write_text(text, encoding='utf-8')
           PY
           mkdir -p site/media
           cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/
@@ -63,8 +48,8 @@ jobs:
         with:
           node-version: 24
 
-      - name: Install Playwright library
-        run: npm install --no-save playwright@1.55.0
+      - name: Install Playwright library outside the repository
+        run: npm install --prefix /tmp/proof-pw --no-save playwright@1.55.0
 
       - name: Start site
         run: |
@@ -74,23 +59,17 @@ jobs:
       - name: Run browser audit in Google Chrome
         run: |
           sed -i "s/chromium.launch({ headless: true })/chromium.launch({ channel: 'chrome', headless: true })/" tools/check_proof_gallery.js
-          node tools/check_proof_gallery.js
+          NODE_PATH=/tmp/proof-pw/node_modules node tools/check_proof_gallery.js
 
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: proof-gallery-screenshots
           path: proof-audit/*.png
-          if-no-files-found: ignore
 
-      - name: Commit verified production changes and remove temporary audit files
-        if: success()
+      - name: Commit verified media references only
         run: |
-          rm -rf site/media
-          rm -f .github/workflows/check-proof-gallery.yml
-          rm -f tools/check_proof_gallery.js
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'site: serve proof video from GitHub Pages'
+          git add site/index.html site/pl/index.html site/uk/index.html site/de/index.html site/ru/index.html
+          git commit -m 'site: use same-origin proof video media'
           git push origin HEAD:fix-proof-gallery-video
