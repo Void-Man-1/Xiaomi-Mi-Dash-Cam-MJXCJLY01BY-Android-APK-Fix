@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'site/**'
+      - 'assets/evidence/**'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
@@ -29,6 +30,12 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      - name: Stage proof media
+        run: |
+          mkdir -p site/media
+          cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/
+          cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
