@@ -19,6 +19,8 @@ jobs:
           ref: migration/uniform-naming
       - name: Apply migration
         shell: python
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           from pathlib import Path
           from tools import apply_uniform_naming_migration as m
