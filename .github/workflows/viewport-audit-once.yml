@@ -93,3 +93,5 @@ jobs:
             process.exit(1);
           });
           NODE
+
+# Re-run on the post-fix branch state before this temporary workflow is removed.
