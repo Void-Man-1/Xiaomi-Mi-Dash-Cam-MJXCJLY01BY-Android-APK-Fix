@@ -1,6 +1,6 @@
 <!-- latest-apk-download:start -->
 <p align="center">
-  <a href="https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk">
+  <a href="https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk">
     <img src="https://img.shields.io/badge/Download-Latest%20APK-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Download latest Mi Dash Cam APK">
   </a>
 </p>
@@ -12,7 +12,7 @@
 <!-- latest-apk-download:end -->
 
 <p align="center">
-  <a href="https://void-man-1.github.io/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/">
+  <a href="https://void-man-1.github.io/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/">
     <img src="https://img.shields.io/badge/Open-Project%20Website-2563EB?style=for-the-badge&logo=githubpages&logoColor=white" alt="Open project website">
   </a>
 </p>
@@ -60,7 +60,7 @@ Version 2.0.0 works locally without a Mi account and restores the phone features
 
 The app has been checked on real phones running Android 8.1, 9, 12, and 16, with additional Android 13–15 testing described below. The exact release-signed 2.0.0 APK completed a full physical test on a Poco F6 running Android 16 / HyperOS 3. Camera connection and reconnection, live preview, the recording grid and thumbnails, completed downloads, and recording replay all worked.
 
-This project provides the release APK through GitHub Releases together with its explanation, screenshots, checksums, and test results. Developers can review, reproduce, and improve the compatibility work through the [patch source kit](source-kit/README.md) without redistributing the complete decompiled Xiaomi/70mai application. The tested APK is available from [GitHub Releases](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest).
+This project provides the release APK through GitHub Releases together with its explanation, screenshots, checksums, and test results. Developers can review, reproduce, and improve the compatibility work through the [patch source kit](source-kit/README.md) without redistributing the complete decompiled Xiaomi/70mai application. The tested APK is available from [GitHub Releases](https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/latest).
 
 The patched app provides:
 
@@ -167,7 +167,7 @@ Those remotely hosted phones cannot join the `MJXCJLY01BY` local Wi-Fi. They did
 
 ## Download and install
 
-Download the exact release-signed `Mi-Dash-Cam-2.0.0.apk` from the repository's [GitHub Releases page](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest). Do not install an unsigned, debug, or differently signed build presented under the same version.
+Download the exact release-signed `Mi-Dash-Cam-2.0.0.apk` from the repository's [GitHub Releases page](https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/latest). Do not install an unsigned, debug, or differently signed build presented under the same version.
 
 1. Download the exact 2.0.0 APK from GitHub Releases.
 2. Verify its SHA-256 against [`checksums/SHA256SUMS.txt`](checksums/SHA256SUMS.txt).

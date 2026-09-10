@@ -8,7 +8,7 @@ Wersja 2.0.0 działa lokalnie bez konta Mi. Finalny podpisany APK został w peł
 
 ## Pobieranie
 
-**[Pobierz Mi-Dash-Cam-2.0.0.apk](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk)**
+**[Pobierz Mi-Dash-Cam-2.0.0.apk](https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk)**
 
 To kanoniczny podpisany APK z bieżącego stabilnego wydania GitHub. Integralność pliku można sprawdzić na podstawie SHA-256 z [`checksums/SHA256SUMS.txt`](../checksums/SHA256SUMS.txt).
 

@@ -21,7 +21,7 @@ This page is for the **Xiaomi Mi Dash Cam `MJXCJLY01BY` European / EU model** wh
 
 The final original European Mi Dash Cam app targets Android API 23. Android 15 introduced a minimum installable target-SDK requirement that rejects apps targeting below API 24 during normal installation. The compatibility release raises the target while preserving the legacy local camera functionality required by `MJXCJLY01BY`.
 
-Use the canonical signed APK from this repository's [latest release](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest), not a debug or differently signed copy.
+Use the canonical signed APK from this repository's [latest release](https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/latest), not a debug or differently signed copy.
 
 ## Mi Dash Cam connects to Wi-Fi but the app does not connect
 
@@ -65,6 +65,6 @@ Xiaomi's original specification page identifies `MJXCJLY01BY` and its Wi-Fi / 10
 
 ## Download and verification
 
-Download the current canonical release from the [GitHub Releases page](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/latest). Verify the release SHA-256 against [`checksums/SHA256SUMS.txt`](../checksums/SHA256SUMS.txt) before installing if you want to confirm file integrity.
+Download the current canonical release from the [GitHub Releases page](https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/latest). Verify the release SHA-256 against [`checksums/SHA256SUMS.txt`](../checksums/SHA256SUMS.txt) before installing if you want to confirm file integrity.
 
 For the full technical explanation, compatibility matrix, test evidence and patch details, return to the [main README](../README.md).
