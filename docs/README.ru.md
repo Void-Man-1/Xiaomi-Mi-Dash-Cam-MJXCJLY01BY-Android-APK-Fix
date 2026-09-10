@@ -8,10 +8,14 @@
 
 ## Скачать
 
-Актуальный APK находится в основном README репозитория: **[перейти к загрузке](../README.md)**.
+**[Скачать Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk](https://github.com/Void-Man-1/Mi-Dash-cam-Android-8.1-16-fix-MJXCJLY01BY/releases/download/v2.0.0/Mi-Dash-Cam-EU-2.0.0-android12-16-arm64.apk)**
+
+Это канонический подписанный APK из текущего стабильного релиза GitHub. Для проверки файла используйте SHA-256 из [`checksums/SHA256SUMS.txt`](../checksums/SHA256SUMS.txt).
 
 Поддерживаемая модель: **Xiaomi Mi Dash Cam `MJXCJLY01BY`, EU / European region**.
 
 **Mi Dash Cam 1S `MJXCJLY02BY` — другая камера и этим проектом не поддерживается.**
+
+Если приложение не устанавливается, не подключается по Wi-Fi, показывает чёрный экран или зависает, смотрите [руководство по устранению неполадок](TROUBLESHOOTING.md).
 
 Полная информация о совместимости, SHA-256, тестировании, технических исправлениях и ограничениях находится в [основном README](../README.md).
