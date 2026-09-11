@@ -55,7 +55,7 @@ jobs:
           exit 1
 
       - name: Audit five locales across viewport matrix in Google Chrome
-        shell: node
+        shell: 'node {0}'
         run: |
           const { chromium } = require('playwright-core');
 
@@ -96,7 +96,6 @@ jobs:
                 const social = await page.evaluate(async () => {
                   const url = document.querySelector('meta[property="og:image"]')?.content;
                   if (!url) return {error: 'missing og:image'};
-                  // Map the canonical production path to this local audit server.
                   const local = new URL(url).pathname.replace('/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/', '/');
                   return await new Promise(resolve => {
                     const img = new Image();
@@ -149,7 +148,6 @@ jobs:
                       ruIsLast: links.at(-1)?.getAttribute('hreflang') === 'ru',
                       trustLeft: rect.left,
                       trustRight: innerWidth - rect.right,
-                      trustWidth: rect.width,
                     };
                   }, expectedLangs);
                   if (state.pageOverflow > 1) throw new Error(`${locale}@${width}: page overflow ${state.pageOverflow}px`);
