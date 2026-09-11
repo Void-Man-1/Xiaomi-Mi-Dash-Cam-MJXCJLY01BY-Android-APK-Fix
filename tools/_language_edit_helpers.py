@@ -7,11 +7,15 @@ def apply(path: str, replacements: list[tuple[str, str]]) -> None:
         raise SystemExit(f"README edit refused: {path}")
     text = p.read_text(encoding="utf-8")
     original = text
+    missing = []
     for old, new in replacements:
         if old not in text:
-            raise SystemExit(f"Expected text not found in {path}: {old[:120]!r}")
+            missing.append(old[:120])
+            continue
         text = text.replace(old, new)
     if text == original:
         raise SystemExit(f"No changes produced for {path}")
     p.write_text(text, encoding="utf-8")
     print(f"edited {path}")
+    for item in missing:
+        print(f"SOURCE_DRIFT {path}: {item!r}")
