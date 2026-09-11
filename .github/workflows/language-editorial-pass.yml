@@ -1,5 +1,5 @@
 name: Temporary final clean-tree language verification
-# execution: 13
+# execution: 14
 
 on:
   push:
@@ -25,16 +25,9 @@ jobs:
         run: |
           set -euo pipefail
           rm -f .github/workflows/language-editorial-pass.yml
-          rm -f tools/_language_edit_helpers.py
-          rm -f tools/_language_editorial_pass.py
-          rm -f tools/_language_edits_en.py
-          rm -f tools/_language_edits_pl.py
-          rm -f tools/_language_edits_uk.py
-          rm -f tools/_language_edits_de.py
-          rm -f tools/_language_edits_ru.py
-          rm -f tools/_language_edits_docs.py
-          rm -f tools/_language_second_pass.py
-          rm -f tools/_language_layout_fix.py
+          rm -f tools/_language_edit_helpers.py tools/_language_editorial_pass.py
+          rm -f tools/_language_edits_en.py tools/_language_edits_pl.py tools/_language_edits_uk.py tools/_language_edits_de.py tools/_language_edits_ru.py tools/_language_edits_docs.py
+          rm -f tools/_language_second_pass.py tools/_language_layout_fix.py
 
       - name: Prove README files were not changed
         shell: bash
@@ -80,8 +73,7 @@ jobs:
           uk=pages['uk'].read_text(encoding='utf-8').lower()
           de=pages['de'].read_text(encoding='utf-8')
           ru=pages['ru'].read_text(encoding='utf-8').lower()
-          assert 'compatibility apk for the european' not in en
-          assert 'physical-camera acceptance' not in en
+          assert 'compatibility apk for the european' not in en and 'physical-camera acceptance' not in en
           assert 'projekt zgodności' not in pl and 'fizyczną kamerą' not in pl
           assert 'фізичною камерою' not in uk and 'фізична камера' not in uk
           assert 'Kompatibilitätskorrekturen für aktuelle Android-Versionen.' not in de
@@ -146,7 +138,8 @@ jobs:
           test -z "$bad" || { echo "README changes detected: $bad" >&2; exit 1; }
           git config user.name 'Void__Man'
           git config user.email '49790372+Void-Man-1@users.noreply.github.com'
-          git add -A .github/workflows/language-editorial-pass.yml tools/_language_edit_helpers.py tools/_language_editorial_pass.py tools/_language_edits_en.py tools/_language_edits_pl.py tools/_language_edits_uk.py tools/_language_edits_de.py tools/_language_edits_ru.py tools/_language_edits_docs.py tools/_language_second_pass.py tools/_language_layout_fix.py
+          git add -A -- .github/workflows/language-editorial-pass.yml
+          git add -u -- tools
           git diff --cached --check
           git diff --cached --name-status
           git commit -m 'chore: remove temporary language audit tooling'
