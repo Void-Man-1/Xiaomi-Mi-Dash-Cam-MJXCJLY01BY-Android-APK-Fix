@@ -1,0 +1,387 @@
+name: Temporary full repository audit
+
+on:
+  push:
+    branches:
+      - audit/full-repository-2026-09-11
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-and-security:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Public naming validation
+        run: python tools/verify_public_naming.py --post-rename
+
+      - name: Repository integrity validation (known preview defect may fail)
+        id: integrity
+        continue-on-error: true
+        run: python tools/verify_repository_integrity.py
+
+      - name: Parse Python, JSON and XML files
+        shell: python
+        run: |
+          import ast
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          root = Path('.')
+          failures = []
+          for p in root.rglob('*'):
+              if not p.is_file() or '.git' in p.parts:
+                  continue
+              try:
+                  if p.suffix == '.py':
+                      ast.parse(p.read_text(encoding='utf-8'), filename=str(p))
+                  elif p.suffix == '.json':
+                      json.loads(p.read_text(encoding='utf-8'))
+                  elif p.suffix == '.xml':
+                      ET.parse(p)
+              except Exception as exc:
+                  failures.append(f'{p}: {exc}')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          print('Python/JSON/XML parse audit passed.')
+
+      - name: Check local Markdown links and tracked file references
+        shell: python
+        run: |
+          import re
+          from pathlib import Path
+          from urllib.parse import unquote
+
+          root = Path('.').resolve()
+          failures = []
+          markdown_link = re.compile(r'!?\[[^\]]*\]\(([^)]+)\)')
+          for p in Path('.').rglob('*.md'):
+              if '.git' in p.parts:
+                  continue
+              text = p.read_text(encoding='utf-8')
+              for raw in markdown_link.findall(text):
+                  target = raw.strip().split()[0].strip('<>')
+                  if target.startswith(('http://','https://','mailto:','#')):
+                      continue
+                  target = unquote(target.split('#',1)[0])
+                  if not target:
+                      continue
+                  candidate = (p.parent / target).resolve()
+                  try:
+                      candidate.relative_to(root)
+                  except ValueError:
+                      failures.append(f'{p}: link escapes repository: {raw}')
+                      continue
+                  if not candidate.exists():
+                      failures.append(f'{p}: missing local link target: {raw}')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          print('Local Markdown link audit passed.')
+
+      - name: Check for suspicious TODO/FIXME markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          matches="$(git grep -nEI '\b(TODO|FIXME|XXX|HACK)\b' -- ':!docs/superpowers/**' ':!docs/AUDIT_2026-09-11.md' || true)"
+          if [[ -n "$matches" ]]; then
+            printf '%s\n' "$matches"
+          else
+            echo 'No TODO/FIXME/XXX/HACK markers found.'
+          fi
+
+      - name: Audit private-key-like tracked filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+          bad="$(git ls-files | grep -Ei '\.(p12|pfx|p8|pk8|pkcs8|jks|keystore|pem|key)$' || true)"
+          if [[ -n "$bad" ]]; then
+            echo 'Private-key-like tracked filenames found:' >&2
+            printf '%s\n' "$bad" >&2
+            exit 1
+          fi
+          echo 'No private-key-like tracked filenames found.'
+
+      - name: Gitleaks history scan
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.24.3 detect --source=/repo --no-banner --redact --exit-code=1
+
+      - name: Actionlint workflow audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7
+
+      - name: Require only the expected RED condition
+        if: always()
+        shell: bash
+        env:
+          INTEGRITY_OUTCOME: ${{ steps.integrity.outcome }}
+        run: |
+          if [[ "$INTEGRITY_OUTCOME" != "failure" ]]; then
+            echo "Expected the current social-preview regression check to fail before its fix; got: $INTEGRITY_OUTCOME" >&2
+            exit 1
+          fi
+          echo 'Known social-preview defect was reproduced as the expected RED condition.'
+
+  source-kit-and-release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Parse source-kit scripts with Windows PowerShell 5.1
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $failed = @()
+          Get-ChildItem source-kit\scripts\*.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $failed += "$($_.Name): $($errors -join '; ')" }
+          }
+          if ($failed.Count -gt 0) { throw ($failed -join "`n") }
+          Write-Host 'Windows PowerShell parser audit passed.'
+
+      - name: Parse source-kit scripts with PowerShell 7
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $failed = @()
+          Get-ChildItem source-kit/scripts/*.ps1 | ForEach-Object {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { $failed += "$($_.Name): $($errors -join '; ')" }
+          }
+          if ($failed.Count -gt 0) { throw ($failed -join "`n") }
+          Write-Host 'PowerShell 7 parser audit passed.'
+
+      - name: Exercise path-containment helpers
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . .\source-kit\scripts\Common.ps1
+          $root = Join-Path $env:RUNNER_TEMP 'contained-root'
+          New-Item -ItemType Directory -Path $root -Force | Out-Null
+
+          $bad = @('..\escape','../escape','.\child','./child','child\\..\\escape','child/../escape','child::x')
+          foreach ($value in $bad) {
+            $threw = $false
+            try { [void](Resolve-ContainedPath -Root $root -RelativePath $value) } catch { $threw = $true }
+            if (-not $threw) { throw "Resolve-ContainedPath accepted unsafe path: $value" }
+          }
+
+          $child = Resolve-ContainedPath -Root $root -RelativePath 'child\file.txt'
+          if (-not $child.StartsWith($root, [StringComparison]::OrdinalIgnoreCase)) { throw 'Contained path escaped root.' }
+
+          $safeGenerated = Join-Path $root 'generated'
+          Assert-SafeGeneratedDirectory -Path $safeGenerated -AllowedRoot $root
+          foreach ($value in @($root, (Split-Path -Parent $root))) {
+            $threw = $false
+            try { Assert-SafeGeneratedDirectory -Path $value -AllowedRoot $root } catch { $threw = $true }
+            if (-not $threw) { throw "Assert-SafeGeneratedDirectory accepted unsafe recursive target: $value" }
+          }
+          Write-Host 'Path-containment helper audit passed.'
+
+      - name: Validate patch manifest and repository payload hashes
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          . .\source-kit\scripts\Common.ps1
+          $sourceRoot = (Resolve-Path .\source-kit).Path
+          $manifestPath = (Resolve-Path .\source-kit\patches\2.0.0\manifest.json).Path
+          $record = Read-PatchManifest -ManifestPath $manifestPath -SourceKitRoot $sourceRoot
+          $manifest = $record.Data
+          if ($manifest.releaseVersion -ne '2.0.0') { throw 'Manifest releaseVersion mismatch.' }
+          if ($manifest.apktoolVersion -ne '3.0.3') { throw 'Manifest apktoolVersion mismatch.' }
+
+          foreach ($item in @($manifest.addedFiles)) {
+            if ($null -eq $item) { continue }
+            $source = Join-Path (Split-Path -Parent $manifestPath) ([string]$manifest.addedFilesDirectory)
+            $source = Join-Path $source ([string]$item.path)
+            if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw "Missing added-file payload: $($item.path)" }
+            $mode = if ($null -ne $item.PSObject.Properties['hashMode']) { [string]$item.hashMode } else { 'raw' }
+            [void](Assert-FileHash -LiteralPath $source -ExpectedSha256 ([string]$item.patchedSha256) -Description "Added payload '$($item.path)'" -HashMode $mode)
+          }
+
+          $vendorMissing = @()
+          foreach ($item in @($manifest.vendorInputs)) {
+            if ($null -eq $item) { continue }
+            $input = Join-Path $sourceRoot ([string]$item.inputPath)
+            if (Test-Path -LiteralPath $input -PathType Leaf) {
+              [void](Assert-FileHash -LiteralPath $input -ExpectedSha256 ([string]$item.sha256) -Description "Vendor input '$($item.inputPath)'")
+            } elseif ([bool]$item.requiredForCompleteBuild) {
+              $vendorMissing += [string]$item.inputPath
+            }
+          }
+          if ($vendorMissing.Count -gt 0) {
+            Write-Host ('Required external vendor inputs are intentionally absent from Git: ' + ($vendorMissing -join ', '))
+          }
+          Write-Host 'Patch-manifest/repository payload audit passed.'
+
+      - name: Download immutable release asset
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP\release" -Force | Out-Null
+          gh release download v2.0.0 --repo $env:GITHUB_REPOSITORY --pattern 'Mi-Dash-Cam-2.0.0.apk' --dir "$env:RUNNER_TEMP\release"
+          $apk = "$env:RUNNER_TEMP\release\Mi-Dash-Cam-2.0.0.apk"
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $apk).Hash
+          if ($hash -ne '2F189C0D3A6C9965036EDDBFA927EB7FD720C47D611991EB5EC1D1055E89B887') {
+            throw "Immutable release digest mismatch: $hash"
+          }
+          Write-Host "RELEASE_SHA256=$hash"
+
+      - name: Locate Android build tools
+        id: android-tools
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sdk = if ($env:ANDROID_SDK_ROOT) { $env:ANDROID_SDK_ROOT } elseif ($env:ANDROID_HOME) { $env:ANDROID_HOME } else { throw 'Android SDK root is unavailable.' }
+          $dirs = Get-ChildItem (Join-Path $sdk 'build-tools') -Directory | Sort-Object { [version]$_.Name } -Descending
+          if ($dirs.Count -eq 0) { throw 'No Android build-tools installation found.' }
+          $tools = $dirs[0].FullName
+          foreach ($name in @('aapt.exe','zipalign.exe','apksigner.bat')) {
+            if (-not (Test-Path (Join-Path $tools $name))) { throw "Missing Android tool: $name in $tools" }
+          }
+          "tools=$tools" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "ANDROID_BUILD_TOOLS=$tools"
+
+      - name: Verify immutable release with Android tools
+        shell: powershell
+        env:
+          BUILD_TOOLS: ${{ steps.android-tools.outputs.tools }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $apk = "$env:RUNNER_TEMP\release\Mi-Dash-Cam-2.0.0.apk"
+          $aapt = Join-Path $env:BUILD_TOOLS 'aapt.exe'
+          $zipalign = Join-Path $env:BUILD_TOOLS 'zipalign.exe'
+          $apksigner = Join-Path $env:BUILD_TOOLS 'apksigner.bat'
+
+          $badging = & $aapt dump badging $apk
+          if ($LASTEXITCODE -ne 0) { throw 'aapt failed.' }
+          $packageLine = ($badging | Select-String "^package: name='com\.banyac\.mijia\.app\.eu' versionCode='20000' versionName='2\.0\.0'")
+          if (-not $packageLine) { throw 'Release package/version metadata mismatch.' }
+
+          & $zipalign -P 16 -c 4 $apk
+          if ($LASTEXITCODE -ne 0) { throw '16 KiB ZIP alignment verification failed.' }
+
+          & $apksigner verify --verbose --print-certs $apk
+          if ($LASTEXITCODE -ne 0) { throw 'APK signature verification failed.' }
+          Write-Host 'Immutable release Android-tool verification passed.'
+
+      - name: Run repository verify.ps1 against immutable release
+        shell: powershell
+        env:
+          BUILD_TOOLS: ${{ steps.android-tools.outputs.tools }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $apk = "$env:RUNNER_TEMP\release\Mi-Dash-Cam-2.0.0.apk"
+          & .\source-kit\scripts\verify.ps1 `
+            -ApkPath $apk `
+            -ManifestPath (Resolve-Path .\source-kit\patches\2.0.0\manifest.json).Path `
+            -AaptPath (Join-Path $env:BUILD_TOOLS 'aapt.exe') `
+            -ZipalignPath (Join-Path $env:BUILD_TOOLS 'zipalign.exe') `
+            -ApksignerPath (Join-Path $env:BUILD_TOOLS 'apksigner.bat') `
+            -RequireSignature `
+            -ReportPath "$env:RUNNER_TEMP\release-verification.json"
+          if ($LASTEXITCODE -ne 0) { throw "verify.ps1 exited $LASTEXITCODE" }
+
+  release-sync-behavior:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Exercise embedded release-sync script against controlled copies
+        shell: python
+        run: |
+          from pathlib import Path
+          import os, re, shutil, subprocess, tempfile, textwrap
+
+          workflow = Path('.github/workflows/update-readme-download.yml').read_text(encoding='utf-8')
+          marker = '        shell: python\n        run: |\n'
+          start = workflow.find(marker)
+          if start < 0:
+              raise SystemExit('Could not locate embedded Python release-sync step.')
+          start += len(marker)
+          end = workflow.find('\n      - name:', start)
+          block = workflow[start:end]
+          lines = block.splitlines()
+          script = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines) + '\n'
+
+          def scenario(version: str, expected_success: bool):
+              with tempfile.TemporaryDirectory() as td:
+                  work = Path(td) / 'repo'
+                  shutil.copytree('.', work, ignore=shutil.ignore_patterns('.git'))
+                  name = f'Mi-Dash-Cam-{version}.apk'
+                  env = os.environ.copy()
+                  env.update({
+                      'APK_NAME': name,
+                      'APK_URL': f'https://github.com/{os.environ["GITHUB_REPOSITORY"]}/releases/download/v{version}/{name}',
+                      'RELEASE_TAG': f'v{version}',
+                      'GITHUB_REPOSITORY': os.environ['GITHUB_REPOSITORY'],
+                  })
+                  proc = subprocess.run(['python','-c',script], cwd=work, env=env, text=True, capture_output=True)
+                  if expected_success and proc.returncode != 0:
+                      raise SystemExit(f'sync scenario {version} failed:\n{proc.stdout}\n{proc.stderr}')
+                  if not expected_success and proc.returncode == 0:
+                      raise SystemExit(f'sync scenario {version} unexpectedly succeeded')
+                  return work
+
+          # Current version must be idempotent.
+          with tempfile.TemporaryDirectory() as td:
+              work = Path(td) / 'repo'
+              shutil.copytree('.', work, ignore=shutil.ignore_patterns('.git'))
+              env = os.environ.copy()
+              env.update({
+                  'APK_NAME': 'Mi-Dash-Cam-2.0.0.apk',
+                  'APK_URL': f'https://github.com/{os.environ["GITHUB_REPOSITORY"]}/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk',
+                  'RELEASE_TAG': 'v2.0.0',
+                  'GITHUB_REPOSITORY': os.environ['GITHUB_REPOSITORY'],
+              })
+              before = {p: (work/p).read_bytes() for p in [
+                  'README.md','docs/README.pl.md','docs/README.uk.md','docs/README.de.md','docs/README.ru.md',
+                  'site/index.html','site/pl/index.html','site/uk/index.html','site/de/index.html','site/ru/index.html']}
+              proc = subprocess.run(['python','-c',script], cwd=work, env=env, text=True, capture_output=True)
+              if proc.returncode != 0:
+                  raise SystemExit(proc.stdout + proc.stderr)
+              changed = [p for p,b in before.items() if (work/p).read_bytes() != b]
+              if changed:
+                  raise SystemExit(f'Current release sync is not idempotent: {changed}')
+
+          # Future canonical release updates every intended surface.
+          with tempfile.TemporaryDirectory() as td:
+              work = Path(td) / 'repo'
+              shutil.copytree('.', work, ignore=shutil.ignore_patterns('.git'))
+              env = os.environ.copy()
+              env.update({
+                  'APK_NAME': 'Mi-Dash-Cam-2.1.0.apk',
+                  'APK_URL': f'https://github.com/{os.environ["GITHUB_REPOSITORY"]}/releases/download/v2.1.0/Mi-Dash-Cam-2.1.0.apk',
+                  'RELEASE_TAG': 'v2.1.0',
+                  'GITHUB_REPOSITORY': os.environ['GITHUB_REPOSITORY'],
+              })
+              proc = subprocess.run(['python','-c',script], cwd=work, env=env, text=True, capture_output=True)
+              if proc.returncode != 0:
+                  raise SystemExit(proc.stdout + proc.stderr)
+              for rel in ['README.md','docs/README.pl.md','docs/README.uk.md','docs/README.de.md','docs/README.ru.md','site/index.html','site/pl/index.html','site/uk/index.html','site/de/index.html','site/ru/index.html']:
+                  text = (work/rel).read_text(encoding='utf-8')
+                  if 'Mi-Dash-Cam-2.1.0.apk' not in text:
+                      raise SystemExit(f'Future release sync did not update {rel}')
+              german = (work/'site/de/index.html').read_text(encoding='utf-8')
+              if 'Mi-Dash-Cam-2.1.0.apk herunterladen' not in german:
+                  raise SystemExit('German future-release CTA order regressed.')
+
+          print('Embedded release-sync behavior audit passed.')
