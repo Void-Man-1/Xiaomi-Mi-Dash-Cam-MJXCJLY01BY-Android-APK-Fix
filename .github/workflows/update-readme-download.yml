@@ -20,7 +20,7 @@ jobs:
   update-download:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Find canonical APK in latest release
         id: release
@@ -42,9 +42,11 @@ jobs:
             exit 1
           fi
 
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "apk_name=$apk_name" >> "$GITHUB_OUTPUT"
-          echo "apk_url=$apk_url" >> "$GITHUB_OUTPUT"
+          {
+            echo "tag=$tag"
+            echo "apk_name=$apk_name"
+            echo "apk_url=$apk_url"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Update canonical download links
         env:
