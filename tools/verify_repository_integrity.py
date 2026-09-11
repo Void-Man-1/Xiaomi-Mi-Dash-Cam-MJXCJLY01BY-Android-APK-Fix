@@ -19,6 +19,7 @@ PAGES_BASE = f"https://void-man-1.github.io/{REPO}/"
 RELEASE_SHA256 = "2F189C0D3A6C9965036EDDBFA927EB7FD720C47D611991EB5EC1D1055E89B887"
 ORIGINAL_SHA256 = "3AC4C02EF5D43A0F9636637B1359073818C6799F3BFE3A7E2A38633F653D95A8"
 SOCIAL_IMAGE = f"{PAGES_BASE}social-preview.png"
+RAW_REPO_ASSET_PREFIX = f"https://raw.githubusercontent.com/Void-Man-1/{REPO}/main/assets/"
 SITE_PAGES = {
     "site/index.html": "en",
     "site/pl/index.html": "pl",
@@ -102,6 +103,19 @@ def canonical_value(parser: HeadParser) -> str | None:
     return None
 
 
+def staged_media_source(clean: str) -> Path | None:
+    normalized = clean.replace("\\", "/")
+    while normalized.startswith("../"):
+        normalized = normalized[3:]
+    if normalized == "media/app-icon.png":
+        return ROOT / "assets/app-icon.png"
+    if normalized.startswith("media/screenshots/"):
+        return ROOT / "assets/screenshots" / Path(normalized).name
+    if normalized.startswith("media/"):
+        return ROOT / "assets/evidence" / Path(normalized).name
+    return None
+
+
 def local_site_reference_exists(page_path: str, value: str) -> bool:
     if not value or value.startswith(("#", "mailto:", "tel:", "data:")):
         return True
@@ -119,17 +133,13 @@ def local_site_reference_exists(page_path: str, value: str) -> bool:
         return True
     if candidate.exists():
         return True
-    # These are staged by deploy-pages.yml from assets/evidence.
-    if clean.startswith(("media/", "../media/")):
-        basename = Path(clean).name
-        return (ROOT / "assets" / "evidence" / basename).exists()
-    return False
+    staged = staged_media_source(clean)
+    return staged.is_file() if staged is not None else False
 
 
 def main() -> int:
     errors: list[str] = []
 
-    # Immutable release/checksum contract.
     checksum = read("checksums/SHA256SUMS.txt")
     if not re.search(rf"(?im)^\s*{RELEASE_SHA256}\s+Mi-Dash-Cam-2\.0\.0\.apk\s*$", checksum):
         errors.append("checksums/SHA256SUMS.txt: immutable v2.0.0 APK digest/name mismatch")
@@ -152,14 +162,12 @@ def main() -> int:
     if str(manifest.get("apktoolVersion")) != "3.0.3":
         errors.append("source-kit manifest: Apktool version is not pinned to 3.0.3")
 
-    # No private-key-like file may be tracked outside the license corpus.
     for path in ROOT.rglob("*"):
         if path.is_file() and path.suffix.lower() in PRIVATE_KEY_SUFFIXES:
             rel = path.relative_to(ROOT).as_posix()
             if rel != "source-kit/LICENSES/LGPL-2.1-or-later.txt":
                 errors.append(f"{rel}: private-key-like file extension is forbidden in the repository")
 
-    # Stale final-release language in public tracked text (excluding audit/spec records).
     stale_patterns = (
         re.compile(r"\b2\.0\.0\b.{0,100}\brelease candidate\b", re.I | re.S),
         re.compile(r"\bremaining release gate\b", re.I),
@@ -179,7 +187,6 @@ def main() -> int:
                 errors.append(f"{rel}: stale release-candidate/pending-gate wording remains")
                 break
 
-    # Localized docs advertised by the site/release-sync contract must exist.
     for rel in ("docs/README.pl.md", "docs/README.uk.md", "docs/README.de.md", "docs/README.ru.md"):
         if not (ROOT / rel).is_file():
             errors.append(f"{rel}: localized README is missing")
@@ -189,7 +196,6 @@ def main() -> int:
         if rel not in sync:
             errors.append(f"update-readme-download.yml: release sync does not cover {rel}")
 
-    # Static site metadata and structure.
     if not (ROOT / "site/social-preview.png").is_file():
         errors.append("site/social-preview.png: dedicated 1200x630 social preview is missing")
 
@@ -197,6 +203,9 @@ def main() -> int:
         text = read(page_path)
         parser = HeadParser()
         parser.feed(text)
+
+        if RAW_REPO_ASSET_PREFIX in text:
+            errors.append(f"{page_path}: repository-owned site media must be served from the Pages origin, not raw.githubusercontent.com")
 
         if parser.html_lang != language:
             errors.append(f"{page_path}: html lang={parser.html_lang!r}, expected {language!r}")
@@ -236,7 +245,6 @@ def main() -> int:
         if order != EXPECTED_LANGUAGE_ORDER:
             errors.append(f"{page_path}: language order is {order!r}, expected {EXPECTED_LANGUAGE_ORDER!r}")
 
-        # Russian must remain text-only.
         nav_match = re.search(r'<nav\s+class="langs"[^>]*>(.*?)</nav>', text, re.S)
         if not nav_match:
             errors.append(f"{page_path}: language selector is missing")
@@ -247,7 +255,6 @@ def main() -> int:
             elif "<img" in ru.group(1) or "🇷🇺" in ru.group(1):
                 errors.append(f"{page_path}: Russian language link must not render a flag")
 
-        # Verify local src/href targets that are expected to ship in the Pages artifact.
         for attr in re.findall(r'\b(?:src|href)="([^"]+)"', text):
             if not local_site_reference_exists(page_path, attr):
                 errors.append(f"{page_path}: referenced local asset does not exist: {attr}")
