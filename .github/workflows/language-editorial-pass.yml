@@ -1,5 +1,5 @@
 name: Temporary final language verification
-# execution: 8
+# execution: 9
 
 on:
   push:
@@ -97,7 +97,6 @@ jobs:
           uk = pages['uk'].read_text(encoding='utf-8')
           de = pages['de'].read_text(encoding='utf-8')
           ru = pages['ru'].read_text(encoding='utf-8')
-
           assert 'Compatibility APK for the European' not in en
           assert 'physical-camera acceptance' not in en.lower()
           assert 'projekt zgodności' not in pl.lower()
@@ -131,10 +130,10 @@ jobs:
           import time
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
+          from selenium.webdriver.common.by import By
 
           paths = {'en': '/', 'pl': '/pl/', 'uk': '/uk/', 'de': '/de/', 'ru': '/ru/'}
           viewports = [(360, 900), (390, 844), (768, 1024), (1440, 1000)]
-
           options = Options()
           options.add_argument('--headless=new')
           options.add_argument('--no-sandbox')
@@ -148,14 +147,10 @@ jobs:
                       driver.set_window_size(width, height)
                       driver.get('http://127.0.0.1:8765' + path)
                       time.sleep(0.12)
-                      total = driver.execute_script('return document.documentElement.scrollHeight')
-                      y = 0
-                      while y < total:
-                          driver.execute_script('window.scrollTo(0, arguments[0])', y)
-                          time.sleep(0.025)
-                          y += max(240, height // 2)
-                      driver.execute_script('window.scrollTo(0, document.documentElement.scrollHeight)')
-                      time.sleep(0.08)
+                      for el in driver.find_elements(By.CSS_SELECTOR, '.reveal'):
+                          driver.execute_script("arguments[0].scrollIntoView({block:'center'})", el)
+                          time.sleep(0.04)
+                      time.sleep(0.1)
                       metrics = driver.execute_script('''
                         const root = document.documentElement;
                         const selectors = ['.site-header','.hero .wrap','.trust-grid','.model-panel','.features','.evidence-video','.gallery','.steps','.download-card','.faq','.footer .wrap'];
@@ -167,15 +162,33 @@ jobs:
                             if (r.left < -2 || r.right > window.innerWidth + 2) bounds.push(selector + ':horizontal-overflow');
                           }
                         }
-                        const hiddenReveals = [...document.querySelectorAll('.reveal')].filter(el => getComputedStyle(el).opacity === '0').length;
+                        const unrevealed = [...document.querySelectorAll('.reveal')].filter(el => !el.classList.contains('visible')).length;
                         const active = document.querySelector('.lang.active');
+                        const overflowers = [...document.querySelectorAll('body *')].filter(el => {
+                          if (el.closest('.langs')) return false;
+                          const r = el.getBoundingClientRect();
+                          return r.right > window.innerWidth + 2 || r.left < -2;
+                        }).slice(0, 12).map(el => {
+                          const r = el.getBoundingClientRect();
+                          return {
+                            tag: el.tagName,
+                            cls: el.className || '',
+                            text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 100),
+                            left: Math.round(r.left),
+                            right: Math.round(r.right),
+                            width: Math.round(r.width),
+                            scrollWidth: el.scrollWidth,
+                            clientWidth: el.clientWidth
+                          };
+                        });
                         return {
                           lang: document.documentElement.lang,
                           title: document.title,
                           innerWidth: window.innerWidth,
                           scrollWidth: root.scrollWidth,
-                          hiddenReveals,
+                          unrevealed,
                           bounds,
+                          overflowers,
                           activeLanguage: active ? active.textContent.trim() : null
                         };
                       ''')
@@ -185,9 +198,9 @@ jobs:
                       if not metrics['title']:
                           failures.append((locale, width, 'missing-title'))
                       if metrics['scrollWidth'] > metrics['innerWidth'] + 2:
-                          failures.append((locale, width, 'page-horizontal-overflow', metrics['scrollWidth'], metrics['innerWidth']))
-                      if metrics['hiddenReveals']:
-                          failures.append((locale, width, 'hidden-reveal-elements', metrics['hiddenReveals']))
+                          failures.append((locale, width, 'page-horizontal-overflow', metrics['scrollWidth'], metrics['innerWidth'], metrics['overflowers']))
+                      if metrics['unrevealed']:
+                          failures.append((locale, width, 'unrevealed-elements', metrics['unrevealed']))
                       if metrics['bounds']:
                           failures.append((locale, width, 'key-element-bounds', metrics['bounds']))
                       if not metrics['activeLanguage']:
