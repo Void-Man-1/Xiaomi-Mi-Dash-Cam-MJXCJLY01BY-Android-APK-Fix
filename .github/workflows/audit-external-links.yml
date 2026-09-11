@@ -1,0 +1,86 @@
+name: Temporary external link audit
+
+on:
+  push:
+    branches:
+      - audit/full-repository-2026-09-11
+    paths:
+      - '.github/workflows/audit-external-links.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check public links referenced by user-facing documentation and Pages
+        shell: python
+        run: |
+          import concurrent.futures
+          import html.parser
+          import re
+          import subprocess
+          import urllib.parse
+          from pathlib import Path
+
+          roots = [Path('README.md'), Path('CONTRIBUTING.md'), Path('NOTICE.md')]
+          roots += sorted(Path('docs').rglob('*.md'))
+          roots += sorted(Path('site').rglob('*.html'))
+          roots += [Path('site/sitemap.xml')]
+
+          url_re = re.compile(r'https?://[^\s<>"\')\]]+')
+          urls = set()
+          origins = {}
+          for path in roots:
+              if not path.exists() or not path.is_file():
+                  continue
+              text = path.read_text(encoding='utf-8', errors='replace')
+              for raw in url_re.findall(text):
+                  url = html.parser.unescape(raw).rstrip('.,;:!')
+                  if any(ch in url for ch in '{}<>'):
+                      continue
+                  parsed = urllib.parse.urlsplit(url)
+                  if not parsed.netloc:
+                      continue
+                  urls.add(url)
+                  origins.setdefault(url, set()).add(str(path))
+
+          def probe(url):
+              cmd = [
+                  'curl', '-L', '--silent', '--show-error', '--output', '/dev/null',
+                  '--connect-timeout', '8', '--max-time', '25', '--retry', '1',
+                  '--user-agent', 'Mozilla/5.0 repository-audit/1.0',
+                  '--write-out', '%{http_code}', url,
+              ]
+              p = subprocess.run(cmd, capture_output=True, text=True)
+              code = p.stdout.strip()[-3:] if p.stdout.strip() else '000'
+              return url, code, p.returncode, p.stderr.strip()
+
+          results = []
+          with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
+              for result in pool.map(probe, sorted(urls)):
+                  results.append(result)
+
+          hard = []
+          soft = []
+          print(f'LINKS_TOTAL={len(results)}')
+          for url, code, rc, err in results:
+              source = ', '.join(sorted(origins[url])[:3])
+              print(f'{code} rc={rc} {url} [{source}]')
+              if code in {'404', '410'}:
+                  hard.append((url, code, source))
+              elif rc != 0 or code == '000' or code in {'401', '403', '405', '429'} or code.startswith('5'):
+                  soft.append((url, code, rc, source, err))
+
+          print(f'LINKS_HARD_FAILURES={len(hard)}')
+          print(f'LINKS_SOFT_REVIEW={len(soft)}')
+          if soft:
+              print('Soft-review results (not automatically treated as broken):')
+              for item in soft:
+                  print(item)
+          if hard:
+              raise SystemExit('Definitively broken public links found: ' + repr(hard))
+          print('EXTERNAL_LINK_AUDIT_NO_404_410')
