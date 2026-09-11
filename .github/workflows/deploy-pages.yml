@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Stage site media
         run: |
@@ -44,10 +44,10 @@ jobs:
           cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
