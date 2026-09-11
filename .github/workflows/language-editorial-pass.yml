@@ -1,5 +1,5 @@
-name: Temporary German layout diagnostics
-# execution: 11
+name: Temporary German layout fix
+# execution: 12
 
 on:
   push:
@@ -9,20 +9,37 @@ on:
       - '.github/workflows/language-editorial-pass.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  fix-and-verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: language/full-editorial-pass-2026-09-11
-      - name: Install browser diagnostic dependency
+          fetch-depth: 0
+      - name: Apply confirmed German heading fix
+        run: python tools/_language_layout_fix.py
+      - name: Prove README files were not changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          base="$(git merge-base origin/main HEAD)"
+          bad="$(git diff --name-only "$base" HEAD | grep -E '(^|/)README($|\.)' || true)"
+          test -z "$bad" || { echo "README changes detected: $bad" >&2; exit 1; }
+          bad_worktree="$(git diff --name-only | grep -E '(^|/)README($|\.)' || true)"
+          test -z "$bad_worktree" || { echo "README worktree changes detected: $bad_worktree" >&2; exit 1; }
+      - name: Run permanent validators
+        run: |
+          python tools/verify_public_naming.py --post-rename
+          python tools/verify_repository_integrity.py
+      - name: Install browser smoke dependency
         run: |
           google-chrome --version
           python -m pip install --quiet --disable-pip-version-check selenium
-      - name: Diagnose 360px German overflow
+      - name: Browser smoke all locales and viewports
         shell: bash
         run: |
           set -euo pipefail
@@ -31,52 +48,54 @@ jobs:
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           sleep 1
           python - <<'PY'
-          import json, time
+          import time
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
-
+          paths = {'en': '/', 'pl': '/pl/', 'uk': '/uk/', 'de': '/de/', 'ru': '/ru/'}
+          viewports = [(360, 900), (390, 844), (768, 1024), (1440, 1000)]
           options = Options()
           options.add_argument('--headless=new')
           options.add_argument('--no-sandbox')
           options.add_argument('--disable-dev-shm-usage')
           driver = webdriver.Chrome(options=options)
+          failures = []
           try:
-              driver.set_window_size(360, 900)
-              driver.get('http://127.0.0.1:8765/de/')
-              time.sleep(0.2)
-              report = driver.execute_script('''
-                const vw = window.innerWidth;
-                const root = document.documentElement;
-                const items = [...document.querySelectorAll('body *')].map((el, i) => {
-                  const r = el.getBoundingClientRect();
-                  const s = getComputedStyle(el);
-                  return {
-                    i,
-                    tag: el.tagName,
-                    id: el.id || '',
-                    cls: typeof el.className === 'string' ? el.className : '',
-                    text: (el.textContent || '').trim().replace(/\\s+/g,' ').slice(0,140),
-                    left: Math.round(r.left), right: Math.round(r.right), width: Math.round(r.width),
-                    scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
-                    display: s.display, position: s.position, whiteSpace: s.whiteSpace,
-                    overflowX: s.overflowX, minWidth: s.minWidth, maxWidth: s.maxWidth,
-                    wordBreak: s.wordBreak, overflowWrap: s.overflowWrap
-                  };
-                });
-                return {
-                  viewport: vw,
-                  rootClientWidth: root.clientWidth,
-                  rootScrollWidth: root.scrollWidth,
-                  bodyClientWidth: document.body.clientWidth,
-                  bodyScrollWidth: document.body.scrollWidth,
-                  widestScroll: items.filter(x => x.scrollWidth > x.clientWidth + 2).sort((a,b)=>b.scrollWidth-a.scrollWidth).slice(0,30),
-                  beyondRight: items.filter(x => x.position !== 'absolute' && x.right > vw + 2).sort((a,b)=>b.right-a.right).slice(0,30),
-                  wideRects: items.filter(x => x.width > vw + 2).sort((a,b)=>b.width-a.width).slice(0,30)
-                };
-              ''')
-              print(json.dumps(report, ensure_ascii=False, indent=2))
-              if report['rootScrollWidth'] <= report['viewport'] + 2:
-                  raise SystemExit('Expected German overflow was not reproduced')
+              for locale, path in paths.items():
+                  for width, height in viewports:
+                      driver.set_window_size(width, height)
+                      driver.get('http://127.0.0.1:8765' + path)
+                      time.sleep(0.1)
+                      driver.execute_script("document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'))")
+                      metrics = driver.execute_script('''
+                        const root = document.documentElement;
+                        const selectors = ['.site-header','.hero .wrap','.trust-grid','.model-panel','.features','.evidence-video','.gallery','.steps','.download-card','.faq','.footer .wrap'];
+                        const bounds=[];
+                        for (const selector of selectors) for (const el of document.querySelectorAll(selector)) {
+                          const r=el.getBoundingClientRect();
+                          if (r.width<=0 || r.height<=0) bounds.push(selector+':zero-size');
+                          if (r.left < -2 || r.right > window.innerWidth + 2) bounds.push(selector+':horizontal-overflow');
+                        }
+                        return {lang:document.documentElement.lang,title:document.title,innerWidth:window.innerWidth,scrollWidth:root.scrollWidth,bounds,active:!!document.querySelector('.lang.active')};
+                      ''')
+                      print(locale, width, height, metrics)
+                      if metrics['lang'] != locale: failures.append((locale,width,'lang'))
+                      if not metrics['title']: failures.append((locale,width,'title'))
+                      if metrics['scrollWidth'] > metrics['innerWidth'] + 2: failures.append((locale,width,'page-overflow',metrics['scrollWidth'],metrics['innerWidth']))
+                      if metrics['bounds']: failures.append((locale,width,'bounds',metrics['bounds']))
+                      if not metrics['active']: failures.append((locale,width,'active-language'))
           finally:
               driver.quit()
+          if failures:
+              raise SystemExit('BROWSER_SMOKE_FAILURES=' + repr(failures))
+          print('BROWSER_SMOKE_OK')
           PY
+      - name: Commit German layout fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'Void__Man'
+          git config user.email '49790372+Void-Man-1@users.noreply.github.com'
+          git add site/de/index.html
+          git diff --cached --check
+          git commit -m 'site: fix German mobile heading overflow'
+          git push origin HEAD:language/full-editorial-pass-2026-09-11
