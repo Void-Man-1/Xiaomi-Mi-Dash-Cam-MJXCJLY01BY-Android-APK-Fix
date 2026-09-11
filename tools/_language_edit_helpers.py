@@ -13,9 +13,10 @@ def apply(path: str, replacements: list[tuple[str, str]]) -> None:
             missing.append(old[:120])
             continue
         text = text.replace(old, new)
-    if text == original:
-        raise SystemExit(f"No changes produced for {path}")
-    p.write_text(text, encoding="utf-8")
-    print(f"edited {path}")
+    if text != original:
+        p.write_text(text, encoding="utf-8")
+        print(f"edited {path}")
+    else:
+        print(f"NO_MATCHED_EDITS {path}")
     for item in missing:
         print(f"SOURCE_DRIFT {path}: {item!r}")
