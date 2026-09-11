@@ -1,8 +1,0 @@
-import _language_edits_en
-import _language_edits_pl
-import _language_edits_uk
-import _language_edits_de
-import _language_edits_ru
-import _language_edits_docs
-
-print("LANGUAGE_EDITORIAL_TRANSFORMS_OK")
