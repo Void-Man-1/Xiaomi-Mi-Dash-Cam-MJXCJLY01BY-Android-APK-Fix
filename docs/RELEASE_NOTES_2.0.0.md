@@ -1,6 +1,6 @@
 # Mi Dash Cam 2.0.0 release notes
 
-Release status: final, exact release-signed APK verified and physically hardware accepted.
+Release status: final. The published APK passed static verification and the documented physical-camera acceptance test.
 
 ## Release identity
 
@@ -15,7 +15,7 @@ The exact file above is the final release artifact. Do not redistribute a debug,
 
 ## Why the version is now 2.0.0
 
-The original European app ended at version 1.1.0. Compatibility work restored operation on modern Android, but version 2.0.0 is a larger generational change: the old cloud-account-gated application now starts as a local accountless tool, its executable Mi-account implementation is removed, and the camera reconnection path is hardened.
+The original European app ended at version 1.1.0. Compatibility work restored operation on current Android versions, but 2.0.0 also changes how the app starts and reconnects: it now opens in a local accountless mode, the executable Mi-account implementation is removed, and camera reconnection is more robust.
 
 ## Signing-key transition
 
@@ -36,7 +36,7 @@ Every future 2.0.0+ release must use this same key so Android can upgrade releas
 
 ### Camera reconnection hardened
 
-The reported failure was a hang when connecting to the camera again, not simultaneous use by two phones. Version 2.0.0 addresses that recurrent-connection path by:
+The reported failure was a hang when connecting to the camera again, not simultaneous use by two phones. Version 2.0.0 addresses that reconnection path by:
 
 - cancelling an earlier request chain tagged to the camera screen before a new connection sequence begins;
 - changing the fast camera-control requests used during connection from a 10-second timeout with three hidden retries to a 4-second timeout with no hidden Volley retry;
@@ -44,7 +44,7 @@ The reported failure was a hang when connecting to the camera again, not simulta
 - keeping recording-list and media-download timing unchanged;
 - retaining live-preview lifecycle cleanup and the RTSP/TCP transport repair.
 
-These changes bound failed control requests and prevent stale work from overlapping a new connection attempt. Physical use on the Poco F6 confirmed successful camera connection and reconnection without the reported hang.
+These changes limit how long failed control requests can linger and prevent stale work from overlapping a new connection attempt. Physical use on the Poco F6 confirmed successful camera connection and reconnection without the reported hang.
 
 ### Release identity
 
@@ -70,7 +70,7 @@ Version 2.0.0 includes:
 
 ## Verification and hardware acceptance
 
-The final 2.0.0 APK passed:
+The published 2.0.0 APK passed:
 
 - exact release signing with verified v1/v2/v3 signatures and a 4096-bit RSA key;
 - exact APK and signing-certificate SHA-256 fingerprints recorded above;

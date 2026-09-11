@@ -1,5 +1,5 @@
 name: Compatibility bug report
-description: Report a problem with the MJXCJLY01BY EU patch on a specific Android device
+description: Report a problem with version 2.0.0 on a specific Android device
 title: "[Bug]: "
 labels:
   - bug
@@ -7,7 +7,7 @@ body:
   - type: checkboxes
     id: camera
     attributes:
-      label: Camera confirmation
+      label: Confirm the camera model
       options:
         - label: The camera label says MJXCJLY01BY (not MJXCJLY02BY / Mi Dash Cam 1S).
           required: true
@@ -44,8 +44,8 @@ body:
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce from a cold start
-      description: Include the exact navigation sequence and whether the phone was joined to camera Wi-Fi.
+      label: Steps to reproduce
+      description: Start from a fresh app launch. Include the exact steps and say whether the phone was connected to the camera's Wi-Fi.
     validations:
       required: true
   - type: textarea
@@ -57,7 +57,7 @@ body:
   - type: checkboxes
     id: functions
     attributes:
-      label: Function results
+      label: What did you test?
       options:
         - label: Camera Wi-Fi connection tested
         - label: Live preview tested
@@ -69,5 +69,5 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: Redacted screenshots or logs
-      description: Never post credentials, access tokens, Wi-Fi passwords, signing keys, or unredacted packet captures.
+      label: Screenshots or logs (redacted)
+      description: Remove credentials, access tokens, Wi-Fi passwords, signing keys, device identifiers, and other private data before posting.
