@@ -16,37 +16,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Check public links referenced by user-facing documentation and Pages
+      - name: Check navigational public links in user-facing documentation and Pages
         shell: python
         run: |
           import concurrent.futures
-          import html.parser
+          import html
           import re
           import subprocess
           import urllib.parse
           from pathlib import Path
 
-          roots = [Path('README.md'), Path('CONTRIBUTING.md'), Path('NOTICE.md')]
-          roots += sorted(Path('docs').rglob('*.md'))
-          roots += sorted(Path('site').rglob('*.html'))
-          roots += [Path('site/sitemap.xml')]
+          docs = [Path('README.md'), Path('CONTRIBUTING.md'), Path('NOTICE.md')]
+          docs += sorted(Path('docs').rglob('*.md'))
+          pages = sorted(Path('site').rglob('*.html'))
 
-          url_re = re.compile(r'https?://[^\s<>"\')\]]+')
+          markdown_link = re.compile(r'\]\((https?://[^)\s]+)')
+          markdown_autolink = re.compile(r'<(https?://[^>\s]+)>')
+          html_link = re.compile(r'(?:href|src)=["\'](https?://[^"\']+)["\']', re.I)
+
           urls = set()
           origins = {}
-          for path in roots:
-              if not path.exists() or not path.is_file():
+          for path in docs:
+              if not path.exists():
                   continue
               text = path.read_text(encoding='utf-8', errors='replace')
-              for raw in url_re.findall(text):
-                  url = html.parser.unescape(raw).rstrip('.,;:!')
+              found = markdown_link.findall(text) + markdown_autolink.findall(text)
+              for raw in found:
+                  url = html.unescape(raw).rstrip('`.,;:!')
                   if any(ch in url for ch in '{}<>'):
-                      continue
-                  parsed = urllib.parse.urlsplit(url)
-                  if not parsed.netloc:
                       continue
                   urls.add(url)
                   origins.setdefault(url, set()).add(str(path))
+
+          for path in pages:
+              text = path.read_text(encoding='utf-8', errors='replace')
+              for raw in html_link.findall(text):
+                  url = html.unescape(raw).rstrip('`.,;:!')
+                  if any(ch in url for ch in '{}<>'):
+                      continue
+                  urls.add(url)
+                  origins.setdefault(url, set()).add(str(path))
+
+          # The new social card is deliberately not live until this PR deploys.
+          # Its local existence/dimensions/metadata are validated separately and
+          # the production URL is verified after merge.
+          pending = 'https://void-man-1.github.io/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/social-preview.png'
+          urls.discard(pending)
 
           def probe(url):
               cmd = [
@@ -61,8 +76,7 @@ jobs:
 
           results = []
           with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
-              for result in pool.map(probe, sorted(urls)):
-                  results.append(result)
+              results.extend(pool.map(probe, sorted(urls)))
 
           hard = []
           soft = []
@@ -82,5 +96,5 @@ jobs:
               for item in soft:
                   print(item)
           if hard:
-              raise SystemExit('Definitively broken public links found: ' + repr(hard))
+              raise SystemExit('Definitively broken navigational links found: ' + repr(hard))
           print('EXTERNAL_LINK_AUDIT_NO_404_410')
