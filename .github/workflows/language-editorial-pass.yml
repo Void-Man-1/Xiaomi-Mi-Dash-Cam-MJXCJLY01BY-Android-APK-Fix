@@ -1,5 +1,5 @@
 name: Temporary language editorial pass
-# execution: 5
+# execution: 6
 
 on:
   push:
@@ -19,8 +19,8 @@ jobs:
         with:
           ref: language/full-editorial-pass-2026-09-11
           fetch-depth: 0
-      - name: Apply editorial transformations
-        run: python tools/_language_editorial_pass.py
+      - name: Apply second editorial pass
+        run: python tools/_language_second_pass.py
       - name: Refuse README changes
         shell: bash
         run: |
@@ -41,13 +41,12 @@ jobs:
           set -euo pipefail
           git config user.name 'Void__Man'
           git config user.email '49790372+Void-Man-1@users.noreply.github.com'
-          git add site .github/ISSUE_TEMPLATE CONTRIBUTING.md docs source-kit/PATCH_SOURCE_NOTICES.md source-kit/docs
-          git reset -- docs/superpowers/specs docs/superpowers/plans || true
+          git add site docs/GITHUB_LISTING.md
           if git diff --cached --quiet; then
-            echo 'No editorial changes produced' >&2
+            echo 'No second-pass changes produced' >&2
             exit 1
           fi
           bad="$(git diff --cached --name-only | awk -F/ '$NF == "README.md" || $NF ~ /^README\..*\.md$/ {print}')"
           test -z "$bad" || { echo "README changes staged unexpectedly: $bad" >&2; exit 1; }
-          git commit -m 'docs: humanize public project copy'
+          git commit -m 'docs: refine localized project copy'
           git push origin HEAD:language/full-editorial-pass-2026-09-11
