@@ -1,0 +1,177 @@
+name: Temporary Pages browser audit
+
+on:
+  push:
+    branches:
+      - audit/full-repository-2026-09-11
+    paths:
+      - 'site/**'
+      - 'assets/evidence/**'
+      - '.github/workflows/audit-site-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Stage production media exactly as Pages does
+        run: |
+          mkdir -p site/media
+          cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/
+          cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/
+
+      - name: Verify social preview dimensions
+        shell: python
+        run: |
+          from pathlib import Path
+          import struct
+          p = Path('site/social-preview.png')
+          data = p.read_bytes()
+          if data[:8] != b'\x89PNG\r\n\x1a\n':
+              raise SystemExit('social-preview.png is not a PNG')
+          width, height = struct.unpack('>II', data[16:24])
+          print(f'SOCIAL_PREVIEW={width}x{height} bytes={len(data)}')
+          if (width, height) != (1200, 630):
+              raise SystemExit(f'Unexpected social preview dimensions: {(width, height)}')
+
+      - name: Install browser harness
+        run: npm install --no-save --ignore-scripts playwright-core@1.55.0
+
+      - name: Start local Pages server
+        shell: bash
+        run: |
+          python3 -m http.server 8000 --directory site >"$RUNNER_TEMP/site-server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/site-server.pid"
+          for i in {1..20}; do
+            if curl -fsS http://127.0.0.1:8000/ >/dev/null; then exit 0; fi
+            sleep 0.5
+          done
+          cat "$RUNNER_TEMP/site-server.log"
+          exit 1
+
+      - name: Audit five locales across viewport matrix in Google Chrome
+        shell: node
+        run: |
+          const { chromium } = require('playwright-core');
+
+          const locales = [
+            ['en', '/'], ['pl', '/pl/'], ['uk', '/uk/'], ['de', '/de/'], ['ru', '/ru/']
+          ];
+          const sizes = [
+            [360,800], [390,844], [768,1024], [1024,900], [1366,900], [1440,1000]
+          ];
+          const expectedLangs = ['en','pl','uk','de','ru'];
+
+          (async () => {
+            const browser = await chromium.launch({
+              headless: true,
+              executablePath: '/usr/bin/google-chrome',
+              args: ['--no-sandbox']
+            });
+            const context = await browser.newContext();
+            let cases = 0;
+            try {
+              for (const [locale, route] of locales) {
+                const page = await context.newPage();
+                const consoleErrors = [];
+                const requestFailures = [];
+                page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+                page.on('requestfailed', req => {
+                  const url = new URL(req.url());
+                  if (url.hostname === '127.0.0.1') requestFailures.push(`${req.url()} :: ${req.failure()?.errorText}`);
+                });
+
+                await page.setViewportSize({width: 1440, height: 1000});
+                await page.goto(`http://127.0.0.1:8000${route}`, {waitUntil: 'domcontentloaded'});
+
+                await page.waitForFunction(() => [...document.images].every(img => img.complete), null, {timeout: 30000});
+                const brokenImages = await page.$$eval('img', imgs => imgs.filter(i => i.naturalWidth === 0).map(i => i.src));
+                if (brokenImages.length) throw new Error(`${locale}: broken images: ${brokenImages.join(', ')}`);
+
+                const social = await page.evaluate(async () => {
+                  const url = document.querySelector('meta[property="og:image"]')?.content;
+                  if (!url) return {error: 'missing og:image'};
+                  // Map the canonical production path to this local audit server.
+                  const local = new URL(url).pathname.replace('/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/', '/');
+                  return await new Promise(resolve => {
+                    const img = new Image();
+                    img.onload = () => resolve({width: img.naturalWidth, height: img.naturalHeight});
+                    img.onerror = () => resolve({error: local});
+                    img.src = `http://127.0.0.1:8000${local}`;
+                  });
+                });
+                if (social.error || social.width !== 1200 || social.height !== 630) {
+                  throw new Error(`${locale}: social preview failed: ${JSON.stringify(social)}`);
+                }
+
+                const video = page.locator('video').first();
+                if (await video.count() !== 1) throw new Error(`${locale}: expected one evidence video`);
+                await page.waitForFunction(() => {
+                  const v = document.querySelector('video');
+                  return v && v.readyState >= 1 && v.videoWidth > 0 && Number.isFinite(v.duration);
+                }, null, {timeout: 30000});
+                const videoMeta = await video.evaluate(v => ({
+                  width: v.videoWidth, height: v.videoHeight, duration: v.duration,
+                  poster: v.poster, source: v.querySelector('source')?.src
+                }));
+                if (videoMeta.width !== 576 || videoMeta.height !== 1280 || videoMeta.duration < 260) {
+                  throw new Error(`${locale}: unexpected video metadata ${JSON.stringify(videoMeta)}`);
+                }
+                if (!videoMeta.poster.includes('/media/') || !videoMeta.source.includes('/media/')) {
+                  throw new Error(`${locale}: evidence media is not using staged same-origin paths`);
+                }
+
+                const fitModes = await page.$$eval('.gallery .shot img', imgs => imgs.map(i => getComputedStyle(i).objectFit));
+                if (fitModes.length !== 3 || fitModes.some(v => v !== 'contain')) {
+                  throw new Error(`${locale}: screenshot gallery must have 3 uncropped contain images; got ${fitModes}`);
+                }
+
+                for (const [width, height] of sizes) {
+                  await page.setViewportSize({width, height});
+                  await page.waitForTimeout(80);
+                  const state = await page.evaluate(expectedLangs => {
+                    const root = document.documentElement;
+                    const langs = document.querySelector('.langs');
+                    const links = [...langs.querySelectorAll('a.lang')];
+                    const trust = document.querySelector('.trust-strip');
+                    const rect = trust.getBoundingClientRect();
+                    return {
+                      pageOverflow: root.scrollWidth - root.clientWidth,
+                      langOverflow: langs.scrollWidth - langs.clientWidth,
+                      langOrder: links.map(a => a.getAttribute('hreflang')),
+                      flagCount: langs.querySelectorAll('img.flag-img').length,
+                      ruImages: langs.querySelector('a[hreflang="ru"]')?.querySelectorAll('img').length ?? -1,
+                      ruIsLast: links.at(-1)?.getAttribute('hreflang') === 'ru',
+                      trustLeft: rect.left,
+                      trustRight: innerWidth - rect.right,
+                      trustWidth: rect.width,
+                    };
+                  }, expectedLangs);
+                  if (state.pageOverflow > 1) throw new Error(`${locale}@${width}: page overflow ${state.pageOverflow}px`);
+                  if (state.langOverflow > 1) throw new Error(`${locale}@${width}: language row overflow ${state.langOverflow}px`);
+                  if (JSON.stringify(state.langOrder) !== JSON.stringify(expectedLangs)) throw new Error(`${locale}@${width}: language order ${state.langOrder}`);
+                  if (state.flagCount !== 4 || state.ruImages !== 0 || !state.ruIsLast) throw new Error(`${locale}@${width}: flag/Russian selector state ${JSON.stringify(state)}`);
+                  if (Math.abs(state.trustLeft - state.trustRight) > 2.5) throw new Error(`${locale}@${width}: trust strip not centered: L=${state.trustLeft}, R=${state.trustRight}`);
+                  cases++;
+                }
+
+                if (requestFailures.length) throw new Error(`${locale}: same-origin request failures: ${requestFailures.join(' | ')}`);
+                if (consoleErrors.length) throw new Error(`${locale}: console errors: ${consoleErrors.join(' | ')}`);
+                await page.close();
+              }
+              console.log(`BROWSER_AUDIT_OK cases=${cases}`);
+              if (cases !== 30) throw new Error(`Expected 30 cases, got ${cases}`);
+            } finally {
+              await browser.close();
+            }
+          })().catch(err => { console.error(err); process.exit(1); });
+
+      - name: Run durable validators
+        run: |
+          python tools/verify_public_naming.py --post-rename
+          python tools/verify_repository_integrity.py
