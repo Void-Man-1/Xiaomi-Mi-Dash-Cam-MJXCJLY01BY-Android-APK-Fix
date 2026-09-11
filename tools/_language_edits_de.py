@@ -2,7 +2,7 @@ from _language_edit_helpers import apply
 
 apply("site/de/index.html", [
     ("Xiaomi Mi Dash Cam MJXCJLY01BY — APK-Fix für Android 15/16 und HyperOS", "Xiaomi Mi Dash Cam MJXCJLY01BY — APK für Android 15/16 und HyperOS"),
-    ("Funktionierende APK für die Xiaomi Mi Dash Cam MJXCJLY01BY EU auf aktuellem Android und HyperOS. WLAN, Livebild, Aufnahmen, Download und Wiedergabe wurden mit einer echten Kamera getestet.", "Angepasste APK für die europäische Xiaomi Mi Dash Cam MJXCJLY01BY auf aktuellen Android-Versionen und HyperOS. WLAN-Verbindung, Livebild, Aufnahmen, Downloads und Wiedergabe wurden mit einer echten Kamera getestet."),
+    ("Funktionierende APK für die europäische Xiaomi Mi Dash Cam MJXCJLY01BY (EU) auf aktuellen Android-Versionen und HyperOS. WLAN, Livebild, Aufnahmen, Downloads und Wiedergabe wurden mit einer echten Kamera getestet.", "Angepasste APK für die europäische Xiaomi Mi Dash Cam MJXCJLY01BY auf aktuellen Android-Versionen und HyperOS. WLAN-Verbindung, Livebild, Aufnahmen, Downloads und Wiedergabe wurden mit einer echten Kamera getestet."),
     ("Nein. Dies ist ein unabhängiges Erhaltungs- und Kompatibilitätsprojekt für nicht mehr gepflegte Begleitsoftware. Xiaomi, Mi, Mijia und 70mai sind Marken ihrer jeweiligen Inhaber.", "Nein. Dies ist ein unabhängiges Kompatibilitätsprojekt für eine Begleit-App, die nicht mehr gepflegt wird. Xiaomi, Mi, Mijia und 70mai sind Marken ihrer jeweiligen Inhaber."),
     ("Kompatibilität mit echter Kamera geprüft", "Mit einer echten Kamera getestet"),
     ("Bring deine <span class=\"accent\">Mi Dash Cam</span> wieder zum Laufen.", "Nutze deine <span class=\"accent\">Mi Dash Cam</span> wieder mit aktuellem Android."),
