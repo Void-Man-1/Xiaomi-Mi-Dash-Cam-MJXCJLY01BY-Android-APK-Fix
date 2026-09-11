@@ -8,7 +8,7 @@ These values define the current public repository listing and should stay synchr
 
 ## About description
 
-Android compatibility fix for Xiaomi Mi Dash Cam MJXCJLY01BY EU. Tested on Android 8.1, 9 and 12–16; restores live preview, downloads and local use without a Mi account.
+Updated Android app for Xiaomi Mi Dash Cam MJXCJLY01BY EU. Restores live preview, downloads and local use without Mi login; tested on Android 8.1, 9 and 12–16.
 
 ## Topics
 
@@ -18,7 +18,7 @@ GitHub currently permits 20 repository topics, so this list intentionally reflec
 
 ## Social preview text
 
-Use the Xiaomi Mi Dash Cam MJXCJLY01BY on current Android versions. Version 2.0.0 restores local use without a Mi account, live preview, downloads and playback, adds ARM64/16 KiB support, and improves reconnection. The full physical-camera test used a Poco F6 running Android 16 / HyperOS 3.
+Use the Xiaomi Mi Dash Cam MJXCJLY01BY with current Android versions. Version 2.0.0 restores local use without a Mi account, live preview, downloads and playback, adds ARM64/16 KiB support, and improves reconnection. The full physical-camera test used a Poco F6 running Android 16 / HyperOS 3.
 
 The GitHub Pages site uses `site/social-preview.png` as its 1200×630 Open Graph/Twitter card. Repository-level social-preview configuration in GitHub should use the same project identity and should not substitute a portrait app screenshot.
 
