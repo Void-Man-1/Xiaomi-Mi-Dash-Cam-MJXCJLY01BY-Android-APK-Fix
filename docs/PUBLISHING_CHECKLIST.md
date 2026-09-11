@@ -19,7 +19,7 @@ Unchecked items in this section remain unresolved or undocumented and are not re
 - [x] Set the default branch to `main`.
 - [x] Add the suggested topics so model-number and Android searches can find the project.
 - [x] Enable Issues for structured device reports.
-- [x] Leave GitHub Pages disabled; the README is the repository landing page.
+- [x] Enable GitHub Pages through the repository Actions deployment workflow and keep the five localized pages synchronized with the published release metadata.
 
 ## Technical acceptance for release 2.0.0
 

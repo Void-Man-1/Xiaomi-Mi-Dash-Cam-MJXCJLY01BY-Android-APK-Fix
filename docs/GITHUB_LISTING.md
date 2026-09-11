@@ -1,6 +1,6 @@
 # GitHub repository listing
 
-These values define the public repository listing.
+These values define the current public repository listing and should stay synchronized with the live repository metadata.
 
 ## Repository name
 
@@ -8,15 +8,19 @@ These values define the public repository listing.
 
 ## About description
 
-Android compatibility APK for Xiaomi Mi Dash Cam MJXCJLY01BY. Restores installation, Wi-Fi, live preview, downloads and playback on modern Android / HyperOS; tested on Poco F6.
+Mi Dash cam Android 8.1-16 fix for Xiaomi MJXCJLY01BY EU: Poco F6/HyperOS 3, live preview, downloads, offline account, ARM64/16K, and manuals.
 
-## Suggested topics
+## Topics
 
-`xiaomi` `mi-dash-cam` `mjxcjly01by` `dashcam` `android-13` `android-14` `android-15` `android-16` `hyperos` `poco-f6` `redmi` `arm64` `rtsp` `mjpeg` `apk` `abandonware` `android-compatibility` `offline-account`
+`abandonware` `android-13` `android-14` `android-15` `android-16` `android-8-1` `android-9` `android-compatibility` `apk` `arm64` `dashcam` `hyperos` `mi-dash-cam` `mjpeg` `mjxcjly01by` `offline-account` `poco-f6` `redmi` `rtsp` `xiaomi`
 
-## Suggested social preview text
+GitHub currently permits 20 repository topics, so this list intentionally reflects the live 20-topic set rather than an aspirational superset.
+
+## Social preview text
 
 Keep the Xiaomi Mi Dash Cam MJXCJLY01BY working on modern Android. Version 2.0.0 provides accountless startup, ARM64/16 KiB support, repaired help/manuals, RTSP/TCP live preview, and reconnect hardening. Full physical-camera operation passed on a Poco F6 running Android 16 / HyperOS 3.
+
+The GitHub Pages site uses `site/social-preview.png` as its 1200×630 Open Graph/Twitter card. Repository-level social-preview configuration in GitHub should use the same project identity and should not substitute a portrait app screenshot.
 
 ## First release
 
