@@ -44,7 +44,7 @@ Open PowerShell in `source-kit` and run:
 
 The script verifies the APK and decodes it into the ignored local workspace under `work/`. The stock APK and decoded tree must not be added to Git.
 
-Preparation is intentionally fail-closed. If the input checksum, package identity, or expected patch anchors do not match, stop and investigate rather than forcing the patch onto a different application.
+Preparation is deliberately fail-closed. If the input checksum, package identity or expected patch anchors do not match, stop and investigate instead of forcing the patch onto a different application.
 
 ## 3. Supply local compatibility inputs for a complete build
 
