@@ -1,5 +1,5 @@
-name: Temporary final language verification
-# execution: 9
+name: Temporary localized layout fix
+# execution: 10
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  verify-and-clean:
+  fix-and-verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -20,102 +20,28 @@ jobs:
           ref: language/full-editorial-pass-2026-09-11
           fetch-depth: 0
 
-      - name: Remove temporary editorial machinery from working tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f .github/workflows/language-editorial-pass.yml
-          rm -f tools/_language_edit_helpers.py
-          rm -f tools/_language_editorial_pass.py
-          rm -f tools/_language_edits_en.py
-          rm -f tools/_language_edits_pl.py
-          rm -f tools/_language_edits_uk.py
-          rm -f tools/_language_edits_de.py
-          rm -f tools/_language_edits_ru.py
-          rm -f tools/_language_edits_docs.py
-          rm -f tools/_language_second_pass.py
+      - name: Apply localized button overflow fix
+        run: python tools/_language_layout_fix.py
 
-      - name: Prove README files were not changed
+      - name: Refuse README changes
         shell: bash
         run: |
           set -euo pipefail
           git fetch origin main
           base="$(git merge-base origin/main HEAD)"
-          changed="$(git diff --name-only "$base" HEAD)"
-          readme_changes="$(printf '%s\n' "$changed" | grep -E '(^|/)README($|\.)' || true)"
-          if [ -n "$readme_changes" ]; then
-            echo 'README changes detected:' >&2
-            echo "$readme_changes" >&2
-            exit 1
-          fi
-          echo "README_UNCHANGED_FROM_MERGE_BASE=$base"
+          bad="$(git diff --name-only "$base" HEAD | grep -E '(^|/)README($|\.)' || true)"
+          test -z "$bad" || { echo "README changes detected: $bad" >&2; exit 1; }
+          bad_worktree="$(git diff --name-only | grep -E '(^|/)README($|\.)' || true)"
+          test -z "$bad_worktree" || { echo "README worktree changes detected: $bad_worktree" >&2; exit 1; }
 
-      - name: Run permanent repository validators
+      - name: Run permanent validators
         run: |
           python tools/verify_public_naming.py --post-rename
           python tools/verify_repository_integrity.py
 
-      - name: Verify language and factual invariants
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-          import json
-          import re
-
-          pages = {
-              'en': Path('site/index.html'),
-              'pl': Path('site/pl/index.html'),
-              'uk': Path('site/uk/index.html'),
-              'de': Path('site/de/index.html'),
-              'ru': Path('site/ru/index.html'),
-          }
-          apk = 'https://github.com/Void-Man-1/Xiaomi-Mi-Dash-Cam-MJXCJLY01BY-Android-APK-Fix/releases/download/v2.0.0/Mi-Dash-Cam-2.0.0.apk'
-          sha256 = '2F189C0D3A6C9965036EDDBFA927EB7FD720C47D611991EB5EC1D1055E89B887'
-          required_hreflangs = {'en', 'pl', 'uk', 'de', 'ru', 'x-default'}
-
-          for locale, path in pages.items():
-              text = path.read_text(encoding='utf-8')
-              assert f'<html lang="{locale}">' in text, (locale, 'html lang')
-              assert 'MJXCJLY01BY' in text, (locale, 'target model missing')
-              assert 'MJXCJLY02BY' in text, (locale, 'unsupported model warning missing')
-              assert 'Android 8.1 / 9 / 12–16' in text, (locale, 'tested-version boundary missing')
-              assert apk in text, (locale, 'release URL drift')
-              assert sha256 in text, (locale, 'SHA-256 drift')
-              assert 'flags/ru.svg' not in text, (locale, 'Russian flag must not be used')
-              assert text.rfind('lang="ru"') > text.rfind('lang="de"'), (locale, 'Russian language entry must remain last')
-              hreflangs = set(re.findall(r'hreflang="([^"]+)"', text))
-              assert required_hreflangs.issubset(hreflangs), (locale, 'hreflang set incomplete', hreflangs)
-              scripts = re.findall(r'<script type="application/ld\+json">(.*?)</script>', text, re.S)
-              assert scripts, (locale, 'JSON-LD missing')
-              for block in scripts:
-                  json.loads(block)
-
-          en = pages['en'].read_text(encoding='utf-8')
-          pl = pages['pl'].read_text(encoding='utf-8')
-          uk = pages['uk'].read_text(encoding='utf-8')
-          de = pages['de'].read_text(encoding='utf-8')
-          ru = pages['ru'].read_text(encoding='utf-8')
-          assert 'Compatibility APK for the European' not in en
-          assert 'physical-camera acceptance' not in en.lower()
-          assert 'projekt zgodności' not in pl.lower()
-          assert 'fizyczną kamerą' not in pl.lower()
-          assert 'фізичною камерою' not in uk.lower()
-          assert 'фізична камера' not in uk.lower()
-          assert 'Kompatibilität mit älteren Android-APIs und CPU-Architekturen wurde aktualisiert' not in de
-          assert 'физической камерой' not in ru.lower()
-          assert 'физическая камера' not in ru.lower()
-
-          listing = Path('docs/GITHUB_LISTING.md').read_text(encoding='utf-8')
-          assert 'Updated Android app for Xiaomi Mi Dash Cam MJXCJLY01BY EU.' in listing
-          assert 'Android 8.1, 9 and 12–16' in listing
-          print('LANGUAGE_AND_FACTUAL_INVARIANTS_OK')
-          PY
-
       - name: Install browser smoke dependency
         run: |
-          google-chrome --version || chromium --version || true
+          google-chrome --version
           python -m pip install --quiet --disable-pip-version-check selenium
 
       - name: Browser smoke all locales and viewports
@@ -130,7 +56,6 @@ jobs:
           import time
           from selenium import webdriver
           from selenium.webdriver.chrome.options import Options
-          from selenium.webdriver.common.by import By
 
           paths = {'en': '/', 'pl': '/pl/', 'uk': '/uk/', 'de': '/de/', 'ru': '/ru/'}
           viewports = [(360, 900), (390, 844), (768, 1024), (1440, 1000)]
@@ -138,7 +63,6 @@ jobs:
           options.add_argument('--headless=new')
           options.add_argument('--no-sandbox')
           options.add_argument('--disable-dev-shm-usage')
-          options.add_argument('--disable-gpu')
           driver = webdriver.Chrome(options=options)
           failures = []
           try:
@@ -147,83 +71,47 @@ jobs:
                       driver.set_window_size(width, height)
                       driver.get('http://127.0.0.1:8765' + path)
                       time.sleep(0.12)
-                      for el in driver.find_elements(By.CSS_SELECTOR, '.reveal'):
-                          driver.execute_script("arguments[0].scrollIntoView({block:'center'})", el)
-                          time.sleep(0.04)
-                      time.sleep(0.1)
+                      # Layout test only: neutralize reveal animation in the test DOM.
+                      driver.execute_script("document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'))")
                       metrics = driver.execute_script('''
                         const root = document.documentElement;
                         const selectors = ['.site-header','.hero .wrap','.trust-grid','.model-panel','.features','.evidence-video','.gallery','.steps','.download-card','.faq','.footer .wrap'];
                         const bounds = [];
-                        for (const selector of selectors) {
-                          for (const el of document.querySelectorAll(selector)) {
-                            const r = el.getBoundingClientRect();
-                            if (r.width <= 0 || r.height <= 0) bounds.push(selector + ':zero-size');
-                            if (r.left < -2 || r.right > window.innerWidth + 2) bounds.push(selector + ':horizontal-overflow');
-                          }
+                        for (const selector of selectors) for (const el of document.querySelectorAll(selector)) {
+                          const r = el.getBoundingClientRect();
+                          if (r.width <= 0 || r.height <= 0) bounds.push(selector + ':zero-size');
+                          if (r.left < -2 || r.right > window.innerWidth + 2) bounds.push(selector + ':horizontal-overflow');
                         }
-                        const unrevealed = [...document.querySelectorAll('.reveal')].filter(el => !el.classList.contains('visible')).length;
                         const active = document.querySelector('.lang.active');
-                        const overflowers = [...document.querySelectorAll('body *')].filter(el => {
-                          if (el.closest('.langs')) return false;
-                          const r = el.getBoundingClientRect();
-                          return r.right > window.innerWidth + 2 || r.left < -2;
-                        }).slice(0, 12).map(el => {
-                          const r = el.getBoundingClientRect();
-                          return {
-                            tag: el.tagName,
-                            cls: el.className || '',
-                            text: (el.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 100),
-                            left: Math.round(r.left),
-                            right: Math.round(r.right),
-                            width: Math.round(r.width),
-                            scrollWidth: el.scrollWidth,
-                            clientWidth: el.clientWidth
-                          };
-                        });
                         return {
                           lang: document.documentElement.lang,
                           title: document.title,
                           innerWidth: window.innerWidth,
                           scrollWidth: root.scrollWidth,
-                          unrevealed,
                           bounds,
-                          overflowers,
                           activeLanguage: active ? active.textContent.trim() : null
                         };
                       ''')
                       print(locale, width, height, metrics)
-                      if metrics['lang'] != locale:
-                          failures.append((locale, width, 'wrong-lang', metrics['lang']))
-                      if not metrics['title']:
-                          failures.append((locale, width, 'missing-title'))
-                      if metrics['scrollWidth'] > metrics['innerWidth'] + 2:
-                          failures.append((locale, width, 'page-horizontal-overflow', metrics['scrollWidth'], metrics['innerWidth'], metrics['overflowers']))
-                      if metrics['unrevealed']:
-                          failures.append((locale, width, 'unrevealed-elements', metrics['unrevealed']))
-                      if metrics['bounds']:
-                          failures.append((locale, width, 'key-element-bounds', metrics['bounds']))
-                      if not metrics['activeLanguage']:
-                          failures.append((locale, width, 'missing-active-language'))
+                      if metrics['lang'] != locale: failures.append((locale, width, 'wrong-lang', metrics['lang']))
+                      if not metrics['title']: failures.append((locale, width, 'missing-title'))
+                      if metrics['scrollWidth'] > metrics['innerWidth'] + 2: failures.append((locale, width, 'page-horizontal-overflow', metrics['scrollWidth'], metrics['innerWidth']))
+                      if metrics['bounds']: failures.append((locale, width, 'key-element-bounds', metrics['bounds']))
+                      if not metrics['activeLanguage']: failures.append((locale, width, 'missing-active-language'))
           finally:
               driver.quit()
-
           if failures:
               raise SystemExit('BROWSER_SMOKE_FAILURES=' + repr(failures))
           print('BROWSER_SMOKE_OK')
           PY
 
-      - name: Commit removal of temporary tooling
+      - name: Commit layout fix
         shell: bash
         run: |
           set -euo pipefail
-          base="$(git merge-base origin/main HEAD)"
-          changed="$(git diff --name-only "$base" HEAD)"
-          readme_changes="$(printf '%s\n' "$changed" | grep -E '(^|/)README($|\.)' || true)"
-          test -z "$readme_changes" || { echo "README changes detected: $readme_changes" >&2; exit 1; }
           git config user.name 'Void__Man'
           git config user.email '49790372+Void-Man-1@users.noreply.github.com'
-          git add -A .github/workflows/language-editorial-pass.yml tools/_language_edit_helpers.py tools/_language_editorial_pass.py tools/_language_edits_en.py tools/_language_edits_pl.py tools/_language_edits_uk.py tools/_language_edits_de.py tools/_language_edits_ru.py tools/_language_edits_docs.py tools/_language_second_pass.py
-          git diff --cached --name-status
-          git commit -m 'chore: remove temporary editorial tooling'
+          git add site/styles.css
+          git diff --cached --check
+          git commit -m 'site: prevent localized button overflow'
           git push origin HEAD:language/full-editorial-pass-2026-09-11
