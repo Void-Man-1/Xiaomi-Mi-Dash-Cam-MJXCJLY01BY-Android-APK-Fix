@@ -6,6 +6,8 @@ on:
       - audit/full-repository-2026-09-11
     paths:
       - 'site/**'
+      - 'assets/app-icon.png'
+      - 'assets/screenshots/**'
       - 'assets/evidence/**'
       - '.github/workflows/audit-site-browser.yml'
   workflow_dispatch:
@@ -21,7 +23,11 @@ jobs:
 
       - name: Stage production media exactly as Pages does
         run: |
-          mkdir -p site/media
+          mkdir -p site/media/screenshots
+          cp assets/app-icon.png site/media/app-icon.png
+          cp assets/screenshots/poco-f6-v2.0.0-main.png site/media/screenshots/
+          cp assets/screenshots/offline-account-redmi-android16.png site/media/screenshots/
+          cp assets/screenshots/galaxy-s24-ultra-android14-add-camera.png site/media/screenshots/
           cp assets/evidence/poco-f6-android16-v2.0.0-full-camera-test.mp4 site/media/
           cp assets/evidence/poco-f6-android16-v2.0.0-video-poster.jpg site/media/
 
