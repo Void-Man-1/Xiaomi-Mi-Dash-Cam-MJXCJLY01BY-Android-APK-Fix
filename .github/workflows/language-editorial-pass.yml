@@ -1,5 +1,5 @@
 name: Temporary language editorial pass
-# execution: 3
+# execution: 4
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
         with:
           ref: language/full-editorial-pass-2026-09-11
           fetch-depth: 0
-      - name: Apply fail-closed editorial transformations
+      - name: Apply editorial transformations
         run: python tools/_language_editorial_pass.py
       - name: Refuse README changes
         shell: bash
