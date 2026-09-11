@@ -95,6 +95,15 @@ jobs:
                 await page.setViewportSize({width: 1440, height: 1000});
                 await page.goto(`http://127.0.0.1:8000${route}`, {waitUntil: 'domcontentloaded'});
 
+                // Explicitly exercise lazy-loaded screenshot cards before asserting all images completed.
+                await page.evaluate(async () => {
+                  const max = document.documentElement.scrollHeight - innerHeight;
+                  for (let y = 0; y <= max; y += Math.max(300, innerHeight * 0.7)) {
+                    scrollTo(0, y);
+                    await new Promise(resolve => setTimeout(resolve, 40));
+                  }
+                  scrollTo(0, max);
+                });
                 await page.waitForFunction(() => [...document.images].every(img => img.complete), null, {timeout: 30000});
                 const brokenImages = await page.$$eval('img', imgs => imgs.filter(i => i.naturalWidth === 0).map(i => i.src));
                 if (brokenImages.length) throw new Error(`${locale}: broken images: ${brokenImages.join(', ')}`);
@@ -138,6 +147,7 @@ jobs:
 
                 for (const [width, height] of sizes) {
                   await page.setViewportSize({width, height});
+                  await page.evaluate(() => scrollTo(0, 0));
                   await page.waitForTimeout(80);
                   const state = await page.evaluate(expectedLangs => {
                     const root = document.documentElement;
